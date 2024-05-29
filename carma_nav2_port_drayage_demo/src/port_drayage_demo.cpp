@@ -40,6 +40,9 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
       on_mobility_operation_received(msg);
     });
 
+  mobility_operation_publisher_ = create_publisher<carma_v2x_msgs::msg::MobilityOperation>(
+    "output/mobility_operation", 1);
+
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
@@ -89,10 +92,33 @@ auto PortDrayageDemo::on_mobility_operation_received(
 
     goal.poses.push_back(std::move(pose));
 
-    follow_waypoints_client_->async_send_goal(goal);
+    auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SendGoalOptions();
+    send_goal_options.result_callback =
+      std::bind(&PortDrayageDemo::on_result_received, this, std::placeholders::_1);
+    follow_waypoints_client_->async_send_goal(goal, send_goal_options);
   } catch (const nlohmann::json::exception & e) {
     RCLCPP_ERROR_STREAM(
       get_logger(), "Could not process MobilityOperation message: JSON error: " << e.what());
+  }
+}
+
+auto PortDrayageDemo::on_result_received(
+    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult & result) -> void
+{
+  switch (result.code)
+  {
+    case rclcpp_action::ResultCode::SUCCEEDED:
+      RCLCPP_INFO(get_logger(), "Goal successfully reached");
+      return;
+    case rclcpp_action::ResultCode::ABORTED:
+      RCLCPP_ERROR(get_logger(), "Goal aborted");
+      return;
+    case rclcpp_action::ResultCode::CANCELED:
+      RCLCPP_ERROR(get_logger(), "Goal canceled");
+      return;
+    default:
+      RCLCPP_ERROR(get_logger(), "An unknown error occurred");
+      return;
   }
 }
 

@@ -36,9 +36,15 @@ public:
 
   auto on_mobility_operation_received(const carma_v2x_msgs::msg::MobilityOperation & msg) -> void;
 
+  auto on_result_received(const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult & result) -> void;
+
+
 private:
   rclcpp::Subscription<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_subscription_{nullptr};
+
+  rclcpp::Publisher<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
+    mobility_operation_publisher_{nullptr};
 
   rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SharedPtr follow_waypoints_client_{
     nullptr};
