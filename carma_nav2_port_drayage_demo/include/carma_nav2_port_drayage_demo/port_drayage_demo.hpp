@@ -17,6 +17,7 @@
 
 #include <carma_v2x_msgs/msg/mobility_operation.hpp>
 #include <nav2_msgs/action/follow_waypoints.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav2_util/lifecycle_node.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
@@ -38,16 +39,22 @@ public:
 
   auto on_result_received(const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult & result) -> void;
 
+  auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
 
 private:
   rclcpp::Subscription<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_subscription_{nullptr};
+
+  rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+    odometry_subscription_{nullptr};
 
   rclcpp::Publisher<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_publisher_{nullptr};
 
   rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SharedPtr follow_waypoints_client_{
     nullptr};
+
+  geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
 };
 }  // namespace carma_nav2_port_drayage_demo
 

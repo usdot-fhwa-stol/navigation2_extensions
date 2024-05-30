@@ -40,6 +40,11 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
       on_mobility_operation_received(msg);
     });
 
+  odometry_subscription_ = create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    "amcl_pose", 1, [this](const geometry_msgs::msg::PoseWithCovarianceStamped & msg) {
+      on_odometry_received(msg);
+    });
+
   mobility_operation_publisher_ = create_publisher<carma_v2x_msgs::msg::MobilityOperation>(
     "output/mobility_operation", 1);
 
@@ -103,13 +108,22 @@ auto PortDrayageDemo::on_mobility_operation_received(
 }
 
 auto PortDrayageDemo::on_result_received(
-    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult & result) -> void
+  const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult & result) -> void
 {
   switch (result.code)
   {
     case rclcpp_action::ResultCode::SUCCEEDED:
+    {
       RCLCPP_INFO(get_logger(), "Goal successfully reached");
+      nlohmann::json mobility_operation_json, location_json;
+      location_json["longitude"] = current_odometry_.pose.pose.position.x;
+      location_json["latitude"] = current_odometry_.pose.pose.position.y;
+      mobility_operation_json["location"] = location_json;
+      carma_v2x_msgs::msg::MobilityOperation result;
+      result.strategy_params = mobility_operation_json.dump();
+      mobility_operation_publisher_->publish(std::move(result));
       return;
+    }
     case rclcpp_action::ResultCode::ABORTED:
       RCLCPP_ERROR(get_logger(), "Goal aborted");
       return;
@@ -120,6 +134,12 @@ auto PortDrayageDemo::on_result_received(
       RCLCPP_ERROR(get_logger(), "An unknown error occurred");
       return;
   }
+}
+
+auto PortDrayageDemo::on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg)
+  -> void
+{
+  current_odometry_ = msg;
 }
 
 }  // namespace carma_nav2_port_drayage_demo
