@@ -21,6 +21,7 @@
 #include <nav2_util/lifecycle_node.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <nlohmann/json.hpp>
 
 namespace carma_nav2_port_drayage_demo
 {
@@ -41,6 +42,18 @@ public:
 
   auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
 
+  enum Operation {
+    PICKUP,
+    DROPOFF,
+    ENTER_STAGING_AREA,
+    EXIT_STAGING_AREA,
+    ENTER_PORT,
+    EXIT_PORT,
+    PORT_CHECKPOINT,
+    HOLDING_AREA,
+    DEFAULT_OPERATION
+  };
+
 private:
   rclcpp::Subscription<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_subscription_{nullptr};
@@ -55,6 +68,10 @@ private:
     nullptr};
 
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
+
+  enum Operation current_operation_;
+  std::string current_strategy_params_;
+  bool actively_executing_operation_ = false;
 };
 }  // namespace carma_nav2_port_drayage_demo
 
