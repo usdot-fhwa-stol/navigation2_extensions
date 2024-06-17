@@ -69,7 +69,7 @@ private:
 
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
 
-  enum Operation current_operation_;
+  std::string current_operation_;
   std::string current_strategy_params_;
   bool actively_executing_operation_ = false;
 };

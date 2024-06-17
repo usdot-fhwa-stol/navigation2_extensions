@@ -66,17 +66,17 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
   mobility_operation_publisher_ = create_publisher<carma_v2x_msgs::msg::MobilityOperation>(
     "outgoing_mobility_operation", 1);
 
-  current_operation_ = PortDrayageDemo::Operation::ENTER_STAGING_AREA;
-  nlohmann::json mobility_operation_json, location_json;
-  mobility_operation_json["cmv_id"] = "C1T-Truck";
-  mobility_operation_json["operation"] = current_operation_;
-  mobility_operation_json["cargo"] = false;
-  mobility_operation_json["cargo_id"] = "";
-  location_json["longitude"] = 0.0; // Could set to the initial destination coordinates instead
-  location_json["latitude"] = 0.0;
-  mobility_operation_json["destination"] = location_json;
-  current_strategy_params_ = mobility_operation_json.dump();
-  actively_executing_operation_ = true;
+  // current_operation_ = PortDrayageDemo::Operation::ENTER_STAGING_AREA;
+  // nlohmann::json mobility_operation_json, location_json;
+  // mobility_operation_json["cmv_id"] = "C1T-Truck";
+  // mobility_operation_json["operation"] = current_operation_;
+  // mobility_operation_json["cargo"] = false;
+  // mobility_operation_json["cargo_id"] = "";
+  // location_json["longitude"] = 0.0; // Could set to the initial destination coordinates instead
+  // location_json["latitude"] = 0.0;
+  // mobility_operation_json["destination"] = location_json;
+  // current_strategy_params_ = mobility_operation_json.dump();
+  actively_executing_operation_ = false;
 
   return nav2_util::CallbackReturn::SUCCESS;
 }
@@ -124,7 +124,7 @@ auto PortDrayageDemo::on_mobility_operation_received(
 
     const auto longitude{strategy_params_json["destination"]["longitude"].template get<float>()};
     const auto latitude{strategy_params_json["destination"]["latitude"].template get<float>()};
-    const auto operation{strategy_params_json["operation"].template get<Operation>()};
+    const auto operation{strategy_params_json["operation"].template get<std::string>()};
 
     RCLCPP_INFO_STREAM(get_logger(), longitude << ", " << latitude);
 
