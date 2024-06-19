@@ -19,25 +19,6 @@
 
 namespace carma_nav2_port_drayage_demo
 {
-
-// std::string PortDrayageDemo::Operation::operationToString() const {
-
-//   // Convert operation enum into a human-readable string
-//   switch(operation_enum_) {
-//     case Operation::PICKUP:             return "PICKUP";
-//     case Operation::DROPOFF:            return "DROPOFF";
-//     case Operation::ENTER_STAGING_AREA: return "ENTER_STAGING_AREA";
-//     case Operation::EXIT_STAGING_AREA:  return "EXIT_STAGING_AREA";
-//     case Operation::ENTER_PORT:         return "ENTER_PORT";
-//     case Operation::EXIT_PORT:          return "EXIT_PORT";
-//     case Operation::PORT_CHECKPOINT:    return "PORT_CHECKPOINT";
-//     case Operation::HOLDING_AREA:       return "HOLDING_AREA";
-//     default:
-//       RCLCPP_WARN_STREAM(rclcpp::get_logger("OperationID"), "Conversion of an unsupported operation enum value to a string.");
-//       return "UNSUPPORTED_OPERATION_ID";
-//   }
-// }
-
 PortDrayageDemo::PortDrayageDemo(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("port_drayage_demo", options)
 {
@@ -48,6 +29,7 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
   RCLCPP_INFO(get_logger(), "Configuring");
+  clock_ = get_clock();
 
   follow_waypoints_client_ = rclcpp_action::create_client<nav2_msgs::action::FollowWaypoints>(
     get_node_base_interface(), get_node_graph_interface(), get_node_logging_interface(),
@@ -66,16 +48,6 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
   mobility_operation_publisher_ = create_publisher<carma_v2x_msgs::msg::MobilityOperation>(
     "outgoing_mobility_operation", 1);
 
-  // current_operation_ = PortDrayageDemo::Operation::ENTER_STAGING_AREA;
-  // nlohmann::json mobility_operation_json, location_json;
-  // mobility_operation_json["cmv_id"] = "C1T-Truck";
-  // mobility_operation_json["operation"] = current_operation_;
-  // mobility_operation_json["cargo"] = false;
-  // mobility_operation_json["cargo_id"] = "";
-  // location_json["longitude"] = 0.0; // Could set to the initial destination coordinates instead
-  // location_json["latitude"] = 0.0;
-  // mobility_operation_json["destination"] = location_json;
-  // current_strategy_params_ = mobility_operation_json.dump();
   actively_executing_operation_ = false;
 
   return nav2_util::CallbackReturn::SUCCESS;
@@ -100,15 +72,6 @@ auto PortDrayageDemo::on_deactivate(const rclcpp_lifecycle::State & /* state */)
 auto PortDrayageDemo::on_mobility_operation_received(
   const carma_v2x_msgs::msg::MobilityOperation & msg) -> void
 {
-  if (msg.strategy != "carma/port_drayage") {
-    RCLCPP_WARN_STREAM(
-      get_logger(),
-      "Received MobilityOperation with unsupported strategy '"
-        << msg.strategy << "'");
-
-    return;
-  }
-
   if (actively_executing_operation_) {
     RCLCPP_WARN_STREAM(
       get_logger(),
@@ -174,6 +137,11 @@ auto PortDrayageDemo::on_result_received(
           get_logger(), "Could not process strategy params while generating port drayage ACK message: JSON error: " << e.what());
       }
       carma_v2x_msgs::msg::MobilityOperation result;
+      result.m_header.sender_id = "";
+      result.m_header.recipient_id = "C1T-Truck";
+      result.m_header.plan_id = "";
+      result.m_header.timestamp = clock_->now().nanoseconds()/1E6; // uint64 milliseconds since unix epoch
+      result.strategy = "carma/port_drayage";
       result.strategy_params = mobility_operation_json.dump();
       mobility_operation_publisher_->publish(std::move(result));
       return;

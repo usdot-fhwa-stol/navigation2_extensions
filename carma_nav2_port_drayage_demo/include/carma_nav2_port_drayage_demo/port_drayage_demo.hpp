@@ -72,6 +72,7 @@ private:
   std::string current_operation_;
   std::string current_strategy_params_;
   bool actively_executing_operation_ = false;
+  rclcpp::Clock::SharedPtr clock_;
 };
 }  // namespace carma_nav2_port_drayage_demo
 
