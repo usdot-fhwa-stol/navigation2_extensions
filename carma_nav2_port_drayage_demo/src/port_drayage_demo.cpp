@@ -22,13 +22,15 @@ namespace carma_nav2_port_drayage_demo
 PortDrayageDemo::PortDrayageDemo(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("port_drayage_demo", options)
 {
-  RCLCPP_INFO(get_logger(), "Creating");
+  declare_parameter("cmv_id", rclcpp::ParameterValue(std::string("")));
 }
 
 auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
-  RCLCPP_INFO(get_logger(), "Configuring");
+
+  get_parameter("cmv_id", cmv_id_);
+
   clock_ = get_clock();
 
   follow_waypoints_client_ = rclcpp_action::create_client<nav2_msgs::action::FollowWaypoints>(
@@ -56,16 +58,12 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
 auto PortDrayageDemo::on_activate(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
-  RCLCPP_INFO(get_logger(), "Activating");
-
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
 auto PortDrayageDemo::on_deactivate(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
-  RCLCPP_INFO(get_logger(), "Deactivating");
-
   return nav2_util::CallbackReturn::SUCCESS;
 }
 

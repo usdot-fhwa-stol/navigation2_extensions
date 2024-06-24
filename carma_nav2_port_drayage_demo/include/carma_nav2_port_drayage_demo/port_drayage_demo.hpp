@@ -71,6 +71,8 @@ private:
 
   std::string current_operation_;
   std::string current_strategy_params_;
+  std::string cmv_id_;
+  std::string cargo_id_;
   bool actively_executing_operation_ = false;
   rclcpp::Clock::SharedPtr clock_;
 };
