@@ -104,6 +104,10 @@ struct PortDrayageMobilityOperationMsg
     double dest_latitude;   // Destination latitude for the carma vehicle
     double start_longitude; // Starting longitude of the carma vehicle
     double start_latitude;  // Starting latitude of the carma vehicle
+    PortDrayageMobilityOperationMsg()
+    {
+      operation = std::shared_ptr<OperationID>(new OperationID{OperationID::Operation::ENTER_STAGING_AREA});
+    }
 };
 
 
@@ -141,7 +145,6 @@ private:
 
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
 
-  std::shared_ptr<OperationID> current_operation_;
   std::string cmv_id_;
   std::string cargo_id_;
   bool actively_executing_operation_ = false;
