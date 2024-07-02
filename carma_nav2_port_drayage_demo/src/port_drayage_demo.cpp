@@ -20,24 +20,26 @@
 namespace carma_nav2_port_drayage_demo
 {
 
-OperationID::OperationID(std::string op_str) : operation_enum_(Operation::PICKUP)
-{
-  // if (op_str == "PICKUP") operation_enum_ = Operation::PICKUP;
-  // else if (op_str == "DROPOFF") operation_enum_ = Operation::DROPOFF;
-  // else if (op_str == "ENTER_STAGING_AREA") operation_enum_ = Operation::ENTER_STAGING_AREA;
-  // else if (op_str == "EXIT_STAGING_AREA") operation_enum_ = Operation::EXIT_STAGING_AREA;
-  // else if (op_str == "ENTER_PORT") operation_enum_ = Operation::ENTER_PORT;
-  // else if (op_str == "EXIT_PORT") operation_enum_ = Operation::EXIT_PORT;
-  // else if (op_str == "PORT_CHECKOUT") operation_enum_ = Operation::PORT_CHECKOUT;
-  // else if (op_str == "HOLDING_AREA") operation_enum_ = Operation::HOLDING_AREA;
-  // else {
-  //   RCLCPP_WARN_STREAM(rclcpp::get_logger("OperationID"), "Received unknown Operation " << op_str);
-  //   operation_enum_ = Operation::DEFAULT_OPERATION;
-  // }
-}
+OperationID::OperationID(std::string op_str) :
+operation_enum_(stringToOperation(op_str)) {}
 
 OperationID::Operation OperationID::getOperationID() const {
   return operation_enum_;
+}
+
+OperationID::Operation OperationID::stringToOperation(std::string op_str) const {
+  if (op_str == "PICKUP") return Operation::PICKUP;
+  else if (op_str == "DROPOFF") return Operation::DROPOFF;
+  else if (op_str == "ENTER_STAGING_AREA") return Operation::ENTER_STAGING_AREA;
+  else if (op_str == "EXIT_STAGING_AREA") return Operation::EXIT_STAGING_AREA;
+  else if (op_str == "ENTER_PORT") return Operation::ENTER_PORT;
+  else if (op_str == "EXIT_PORT") return Operation::EXIT_PORT;
+  else if (op_str == "PORT_CHECKPOINT") return Operation::PORT_CHECKPOINT;
+  else if (op_str == "HOLDING_AREA") return Operation::HOLDING_AREA;
+  else {
+    RCLCPP_WARN_STREAM(rclcpp::get_logger("OperationID"), "Received unknown Operation " << op_str);
+    return Operation::DEFAULT_OPERATION;
+  }
 }
 
 std::string OperationID::operationToString() const {
@@ -189,7 +191,7 @@ auto PortDrayageDemo::extract_port_drayage_message(const carma_v2x_msgs::msg::Mo
     const auto cmv_id{strategy_params_json["cmv_id"].template get<std::string>()};
     if (cmv_id != cmv_id_)
     {
-      RCLCPP_INFO(get_logger(), "Ignoring received port drayage MobilityOperation message intended for cmv_id %s", cmv_id);
+      RCLCPP_INFO(get_logger(), "Ignoring received port drayage MobilityOperation message intended for cmv_id %s", cmv_id.c_str());
       return false;
     }
 

@@ -53,7 +53,7 @@ class OperationID
 
     /**
      * \brief Create OperationID using a string
-     * \param op_str String to convert to an Operation
+     * \param op_str String to used to create the Operation
      */
     OperationID(std::string op_str);
 
@@ -62,6 +62,12 @@ class OperationID
      * \return Operation enum associated with this object.
      */
     OperationID::Operation getOperationID() const;
+
+    /**
+     * \brief Function to convert a string to Operation
+     * \param op_str String to convert to an Operation
+     */
+    OperationID::Operation stringToOperation(std::string op_str) const;
 
     /**
      * \brief Function to convert this object's 'operation_enum_' to a human-readable string.
@@ -82,13 +88,6 @@ class OperationID
     friend bool operator==(const std::string& lhs, const OperationID& rhs) {
       return lhs == rhs.operationToString();
     }
-
-    // /**
-    //  * \brief Overload assignment operator
-    //  */
-    // void operator=(const OperationID op) {
-    //   operation_enum_ = op.getOperationID();
-    // }
 
   private:
     // Data member containing this object's Operation enum value
