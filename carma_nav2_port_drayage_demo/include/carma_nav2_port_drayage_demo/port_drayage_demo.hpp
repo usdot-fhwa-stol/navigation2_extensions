@@ -25,6 +25,89 @@
 
 namespace carma_nav2_port_drayage_demo
 {
+
+class OperationID
+{
+  public:
+    /**
+     * \brief Enum containing possible operation IDs used to define destinations for port drayage.
+     */
+    enum Operation {
+      PICKUP,
+      DROPOFF,
+      ENTER_STAGING_AREA,
+      EXIT_STAGING_AREA,
+      ENTER_PORT,
+      EXIT_PORT,
+      PORT_CHECKPOINT,
+      HOLDING_AREA,
+      DEFAULT_OPERATION,
+    };
+
+    /**
+     * \brief Standard constructor for OperationID
+     * \param op Operation enum associated with this object.
+     */
+    OperationID(enum Operation op) :
+      operation_enum_(op) {};
+
+    /**
+     * \brief Create OperationID using a string
+     * \param op_str String to convert to an Operation
+     */
+    OperationID(std::string op_str);
+
+    /**
+     * \brief Getter function to obtain the Operation enum associated with this object.
+     * \return Operation enum associated with this object.
+     */
+    OperationID::Operation getOperationID() const;
+
+    /**
+     * \brief Function to convert this object's 'operation_enum_' to a human-readable string.
+     * \return A human-readable string representing this object's 'operation_enum_'.
+     */
+    std::string operationToString() const;
+
+    /**
+     * \brief Stream operator for this object.
+     */
+    friend std::ostream& operator<<(std::ostream& output, const OperationID& oid){
+      return output << oid.operationToString();
+    }
+
+    /**
+     * \brief Overloaded == operator for comparision with String objects.
+     */
+    friend bool operator==(const std::string& lhs, const OperationID& rhs) {
+      return lhs == rhs.operationToString();
+    }
+
+    // /**
+    //  * \brief Overload assignment operator
+    //  */
+    // void operator=(const OperationID op) {
+    //   operation_enum_ = op.getOperationID();
+    // }
+
+  private:
+    // Data member containing this object's Operation enum value
+    const Operation operation_enum_ = Operation::DEFAULT_OPERATION;
+};
+
+
+struct PortDrayageMobilityOperationMsg
+{
+    std::string cargo_id;
+    std::shared_ptr<OperationID> operation;
+    std::string current_action_id; // Identifier for the action this message is related to
+    double dest_longitude;  // Destination longitude for the carma vehicle
+    double dest_latitude;   // Destination latitude for the carma vehicle
+    double start_longitude; // Starting longitude of the carma vehicle
+    double start_latitude;  // Starting latitude of the carma vehicle
+};
+
+
 class PortDrayageDemo : public rclcpp_lifecycle::LifecycleNode
 {
 public:
@@ -42,17 +125,7 @@ public:
 
   auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
 
-  enum Operation {
-    PICKUP,
-    DROPOFF,
-    ENTER_STAGING_AREA,
-    EXIT_STAGING_AREA,
-    ENTER_PORT,
-    EXIT_PORT,
-    PORT_CHECKPOINT,
-    HOLDING_AREA,
-    DEFAULT_OPERATION
-  };
+  auto extract_port_drayage_message(const carma_v2x_msgs::msg::MobilityOperation & msg) -> bool;
 
 private:
   rclcpp::Subscription<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
@@ -69,12 +142,12 @@ private:
 
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
 
-  std::string current_operation_;
-  std::string current_strategy_params_;
+  std::shared_ptr<OperationID> current_operation_;
   std::string cmv_id_;
   std::string cargo_id_;
   bool actively_executing_operation_ = false;
   rclcpp::Clock::SharedPtr clock_;
+  PortDrayageMobilityOperationMsg previous_mobility_operation_msg_;
 };
 }  // namespace carma_nav2_port_drayage_demo
 
