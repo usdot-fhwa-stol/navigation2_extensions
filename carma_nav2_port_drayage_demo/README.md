@@ -1,24 +1,36 @@
 # `carma_nav2_port_drayage_demo` package
 
-This package implements port drayage integration with a Nav2-based autonomy stack. The package's node listens for
-incoming port drayage variants of `MobilityOperation.msg` messages then sends the target location to the Nav2 Waypoint
+This package integrates Port Drayage operations with a Nav2-based autonomy stack. The package's node listens for
+incoming port drayage messages of type `carma_v2x_msgs/msg/MobilityOperation` and then sends the target location to the Nav2 Waypoint
 Follower via a ROS 2 action call.
 
-## Turtlebot Gazebo Launch Instructions
-
-To run the Port Drayage demo using the Turtlebot in the Gazebo simulator, first follow [this tutorial](https://roboticsbackend.com/ros2-nav2-tutorial/)
-to correctly configure, launch, and map the simulator. Once you have created a map of the simulation environment, you can start the Port Drayage demo with
+## Sending Mobility Operation Messages
+The definition of the `carma_v2x_msgs/msg/MobilityOperation` is as follows:
 
 ```
-ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
-ros2 launch turtlebot3_navigation2 navigation2.launch.py use_sim_time:=True map:=path/to/my_map.yaml
-ros2 run carma_nav2_port_drayage_demo carma_nav2_port_drayage_demo_node
-ros2 lifecycle set /carma_nav2_port_drayage_demo_node configure
-ros2 lifecycle set /carma_nav2_port_drayage_demo_node activate
+# MobilityOperation.msg
+
+# This message is used by plugins to send necessary parameters to other
+# CAVs at any desired frequency in order to accomplish a collaborative plan
+
+# standard header for all mobility messages
+carma_v2x_msgs/MobilityHeader  m_header
+	#
+	string  sender_id
+	string  recipient_id
+	string sender_bsm_id
+	string  plan_id
+	uint64  timestamp
+
+# strategy string to indicate which strategy type this message is used for
+string                   strategy
+
+# strategy parameters specified by each individual plugin/component
+# the maximum length of this string is 100
+string                   strategy_params
 ```
 
-Next, provide the Turtlebot with an initial pose estimate using the 2D Pose Estimate arrow in Rviz. Once the vehicle has localized, it is now ready to
-receive a Mobility Operation message to determine a goal to reach. To publish this manually, use
+For the purpose of this demo, the only necessary fields to populate when sending instructions to the vehicle are `strategy` and `strategy_params`. The `strategy` field should always be set to `carma/port_drayage`. The `strategy_params` field should be set to a JSON string that follows the format detailed [here](https://usdot-carma.atlassian.net/wiki/spaces/CRMFRT/pages/2006482998/Detailed+Design+-+Port+Drayage+Plugin+V2X-Hub#Communication). For example, to send a Mobility Operation Message instructing the vehicle to pick up cargo with the ID "`C1T_CARGO`" at `(x,y)` coordinates `(3.8, 0.5)` using the ROS2 CLI, run the command:
 
 ```
 ros2 topic pub --once /incoming_mobility_operation carma_v2x_msgs/msg/MobilityOperation "m_header:
@@ -28,8 +40,31 @@ ros2 topic pub --once /incoming_mobility_operation carma_v2x_msgs/msg/MobilityOp
   plan_id: ''
   timestamp: 0
 strategy: 'carma/port_drayage'
-strategy_params: '{\"destination\":{\"longitude\":X_COORD_DEST,\"latitude\":Y_COORD_DEST}}'"
+strategy_params: '{\"cmv_id\":\"turtlebot\",\"operation\":\"PICKUP\",\"cargo\":false,\"cargo_id\":\"C1T_CARGO\",\"destination\":{\"longitude\":3.8,\"latitude\":0.5},\"action_id\":\"PORT_DRAYAGE\"}'"
 ```
 
-with `X_COORD_DEST` and `Y_COORD_DEST` replaced with `x` and `y` coordinates of the desired goal. The Turtlebot should then begin driving to the specified
-destination and publish a Mobility Operation message acknowledging that it reached the goal on `/outgoing_mobility_operation`.
+## Turtlebot Gazebo Launch Instructions
+
+To run the Port Drayage demo using the Turtlebot in the Gazebo simulator, first follow the [`c1t_bringup` Prerequisites](https://github.com/usdot-fhwa-stol/c1t_bringup) to download and build the necessary software.
+
+Then, download and run the simulation environment using:
+
+```
+sudo apt install ros-humble-turtlebot3*
+ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
+```
+
+To launch the Port Drayage demo, run 
+```
+ros2 launch c1t_bringup c1t_bringup_launch.xml vehicle:=turtlebot
+```
+
+Next, provide the Turtlebot with an initial pose estimate using the 2D Pose Estimate arrow in Rviz. Once the vehicle has localized, it is now ready to
+receive a Mobility Operation message to determine an action to complete. To start a simple demonstration of the Turtlebot picking up and dropping off cargo, run:
+
+```
+cd carma_nav2_port_drayage_demo/
+./test/turtlebot_port_drayage_test.sh
+```
+
+This will publish a series of Mobility Operation messages on `/incoming_mobility_operation` that instruct the Turtlebot to navigate to the top of the map to pickup cargo and then subsequently navigate to the bottom of the map to drop it off. After each successful operation, a Mobility Operation message acknowledging the Turtlebot completed the desired action will be published on `/outgoing_mobility_operation`.
