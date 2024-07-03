@@ -122,7 +122,7 @@ auto PortDrayageDemo::on_mobility_operation_received(
 
     return;
   }
-  extract_port_drayage_message(msg);
+  if (!extract_port_drayage_message(msg)) return;
   nav2_msgs::action::FollowWaypoints::Goal goal;
 
   geometry_msgs::msg::PoseStamped pose;
@@ -130,8 +130,6 @@ auto PortDrayageDemo::on_mobility_operation_received(
   pose.pose.position.x = previous_mobility_operation_msg_.dest_longitude;
   pose.pose.position.y = previous_mobility_operation_msg_.dest_latitude;
   goal.poses.push_back(std::move(pose));
-
-  cargo_id_ = previous_mobility_operation_msg_.cargo_id;
   auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SendGoalOptions();
   send_goal_options.result_callback =
     std::bind(&PortDrayageDemo::on_result_received, this, std::placeholders::_1);
@@ -161,7 +159,6 @@ auto PortDrayageDemo::on_result_received(
       mobility_operation_json["location"] = location_json;
       mobility_operation_json["cmv_id"] = cmv_id_;
       mobility_operation_json["operation"] = previous_mobility_operation_msg_.operation->operationToString();
-      mobility_operation_json["cargo"] = cargo_id_ != "";
       mobility_operation_json["action_id"] = previous_mobility_operation_msg_.current_action_id;
       // Update Cargo ID and set JSON field
       if (previous_mobility_operation_msg_.operation->getOperationID() == OperationID::Operation::PICKUP)
@@ -171,7 +168,6 @@ auto PortDrayageDemo::on_result_received(
       }
       else if (previous_mobility_operation_msg_.operation->getOperationID() == OperationID::Operation::DROPOFF)
       {
-        mobility_operation_json["cargo_id"] = cargo_id_;
         cargo_id_ = "";
       }
       else if (cargo_id_ != "")
@@ -179,6 +175,7 @@ auto PortDrayageDemo::on_result_received(
         mobility_operation_json["cargo_id"] = cargo_id_;
       }
 
+      mobility_operation_json["cargo"] = cargo_id_ != "";
       result.strategy_params = mobility_operation_json.dump();
       mobility_operation_publisher_->publish(std::move(result));
       return;
