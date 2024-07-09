@@ -45,7 +45,7 @@ strategy_params: '{\"cmv_id\":\"turtlebot\",\"operation\":\"PICKUP\",\"cargo\":f
 
 ## Turtlebot Gazebo Launch Instructions
 
-To run the Port Drayage demo using the Turtlebot in the Gazebo simulator, first follow the [`c1t_bringup` Prerequisites](https://github.com/usdot-fhwa-stol/c1t_bringup) to download and build the necessary software.
+To run the Port Drayage demo using the Turtlebot in the Gazebo simulator, first follow the [c1t_bringup Prerequisites](https://github.com/usdot-fhwa-stol/c1t_bringup?tab=readme-ov-file#prerequisites) to download and build the necessary software.
 
 Then, download and run the simulation environment using:
 
