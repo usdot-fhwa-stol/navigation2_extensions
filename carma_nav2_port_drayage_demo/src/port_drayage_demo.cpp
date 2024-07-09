@@ -19,16 +19,61 @@
 
 namespace carma_nav2_port_drayage_demo
 {
+
+OperationID::OperationID(std::string op_str) :
+operation_enum_(stringToOperation(op_str)) {}
+
+OperationID::Operation OperationID::getOperationID() const {
+  return operation_enum_;
+}
+
+OperationID::Operation OperationID::stringToOperation(std::string op_str) const {
+  if (op_str == "PICKUP")                   return Operation::PICKUP;
+  else if (op_str == "DROPOFF")             return Operation::DROPOFF;
+  else if (op_str == "ENTER_STAGING_AREA")  return Operation::ENTER_STAGING_AREA;
+  else if (op_str == "EXIT_STAGING_AREA")   return Operation::EXIT_STAGING_AREA;
+  else if (op_str == "ENTER_PORT")          return Operation::ENTER_PORT;
+  else if (op_str == "EXIT_PORT")           return Operation::EXIT_PORT;
+  else if (op_str == "PORT_CHECKPOINT")     return Operation::PORT_CHECKPOINT;
+  else if (op_str == "HOLDING_AREA")        return Operation::HOLDING_AREA;
+  else {
+    RCLCPP_WARN_STREAM(rclcpp::get_logger("OperationID"), "Received unknown Operation " << op_str);
+    return Operation::DEFAULT_OPERATION;
+  }
+}
+
+std::string OperationID::operationToString() const {
+
+  // Convert operation enum into a human-readable string
+  switch(operation_enum_) {
+    case Operation::PICKUP:             return "PICKUP";
+    case Operation::DROPOFF:            return "DROPOFF";
+    case Operation::ENTER_STAGING_AREA: return "ENTER_STAGING_AREA";
+    case Operation::EXIT_STAGING_AREA:  return "EXIT_STAGING_AREA";
+    case Operation::ENTER_PORT:         return "ENTER_PORT";
+    case Operation::EXIT_PORT:          return "EXIT_PORT";
+    case Operation::PORT_CHECKPOINT:    return "PORT_CHECKPOINT";
+    case Operation::HOLDING_AREA:       return "HOLDING_AREA";
+    default:
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("OperationID"), "Conversion of an unsupported operation enum value to a string.");
+      return "DEFAULT_OPERATION";
+  }
+}
+
+
+
 PortDrayageDemo::PortDrayageDemo(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("port_drayage_demo", options)
 {
-  RCLCPP_INFO(get_logger(), "Creating");
+  declare_parameter("cmv_id", rclcpp::ParameterValue(std::string("")));
 }
 
 auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
-  RCLCPP_INFO(get_logger(), "Configuring");
+
+  get_parameter("cmv_id", cmv_id_);
+
   clock_ = get_clock();
 
   follow_waypoints_client_ = rclcpp_action::create_client<nav2_msgs::action::FollowWaypoints>(
@@ -56,16 +101,12 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
 auto PortDrayageDemo::on_activate(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
-  RCLCPP_INFO(get_logger(), "Activating");
-
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
 auto PortDrayageDemo::on_deactivate(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
-  RCLCPP_INFO(get_logger(), "Deactivating");
-
   return nav2_util::CallbackReturn::SUCCESS;
 }
 
@@ -77,39 +118,22 @@ auto PortDrayageDemo::on_mobility_operation_received(
       get_logger(),
       "Ignoring received port drayage operation '"
         << msg.strategy_params << "' while already executing the operation '"
-        << current_strategy_params_ << "'");
+        << previous_mobility_operation_msg_.operation << "'");
 
     return;
   }
+  if (!extract_port_drayage_message(msg)) return;
+  nav2_msgs::action::FollowWaypoints::Goal goal;
 
-  try {
-    const auto strategy_params_json = nlohmann::json::parse(msg.strategy_params);
-
-    const auto longitude{strategy_params_json["destination"]["longitude"].template get<float>()};
-    const auto latitude{strategy_params_json["destination"]["latitude"].template get<float>()};
-    const auto operation{strategy_params_json["operation"].template get<std::string>()};
-
-    RCLCPP_INFO_STREAM(get_logger(), longitude << ", " << latitude);
-
-    nav2_msgs::action::FollowWaypoints::Goal goal;
-
-    geometry_msgs::msg::PoseStamped pose;
-    pose.header.frame_id = "map";
-    pose.pose.position.x = longitude;
-    pose.pose.position.y = latitude;
-    current_operation_ = operation;
-    current_strategy_params_ = msg.strategy_params;
-
-    goal.poses.push_back(std::move(pose));
-
-    auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SendGoalOptions();
-    send_goal_options.result_callback =
-      std::bind(&PortDrayageDemo::on_result_received, this, std::placeholders::_1);
-    follow_waypoints_client_->async_send_goal(goal, send_goal_options);
-  } catch (const nlohmann::json::exception & e) {
-    RCLCPP_ERROR_STREAM(
-      get_logger(), "Could not process MobilityOperation message: JSON error: " << e.what());
-  }
+  geometry_msgs::msg::PoseStamped pose;
+  pose.header.frame_id = "map";
+  pose.pose.position.x = previous_mobility_operation_msg_.dest_longitude;
+  pose.pose.position.y = previous_mobility_operation_msg_.dest_latitude;
+  goal.poses.push_back(std::move(pose));
+  auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SendGoalOptions();
+  send_goal_options.result_callback =
+    std::bind(&PortDrayageDemo::on_result_received, this, std::placeholders::_1);
+  follow_waypoints_client_->async_send_goal(goal, send_goal_options);
 }
 
 auto PortDrayageDemo::on_result_received(
@@ -119,29 +143,39 @@ auto PortDrayageDemo::on_result_received(
   {
     case rclcpp_action::ResultCode::SUCCEEDED:
     {
-      RCLCPP_INFO(get_logger(), "Goal successfully reached");
+      // Create arrival message
+      carma_v2x_msgs::msg::MobilityOperation result;
+      // Populate message header
+      result.m_header.sender_id = cmv_id_;
+      result.m_header.recipient_id = "";
+      result.m_header.plan_id = "";
+      result.m_header.timestamp = clock_->now().nanoseconds()/1E6; // uint64 milliseconds since unix epoch
+      // Set strategy
+      result.strategy = "carma/port_drayage";
+      // Set JSON fields
       nlohmann::json mobility_operation_json, location_json;
-      mobility_operation_json["cmv_id"] = "C1T-Truck";
-      mobility_operation_json["operation"] = current_operation_;
-      mobility_operation_json["cargo"] = false;
-      mobility_operation_json["cargo_id"] = "";
       location_json["longitude"] = current_odometry_.pose.pose.position.x;
       location_json["latitude"] = current_odometry_.pose.pose.position.y;
       mobility_operation_json["location"] = location_json;
-      try {
-        const auto current_strategy_params_json = nlohmann::json::parse(current_strategy_params_);
-        const auto action_id{current_strategy_params_json["action_id"].template get<std::string>()};
-        mobility_operation_json["action_id"] = action_id;
-      } catch (const nlohmann::json::exception & e) {
-        RCLCPP_ERROR_STREAM(
-          get_logger(), "Could not process strategy params while generating port drayage ACK message: JSON error: " << e.what());
+      mobility_operation_json["cmv_id"] = cmv_id_;
+      mobility_operation_json["operation"] = previous_mobility_operation_msg_.operation->operationToString();
+      mobility_operation_json["action_id"] = previous_mobility_operation_msg_.current_action_id;
+      // Update Cargo ID and set JSON field
+      if (previous_mobility_operation_msg_.operation->getOperationID() == OperationID::Operation::PICKUP)
+      {
+        cargo_id_ = previous_mobility_operation_msg_.cargo_id;
+        mobility_operation_json["cargo_id"] = cargo_id_;
       }
-      carma_v2x_msgs::msg::MobilityOperation result;
-      result.m_header.sender_id = "";
-      result.m_header.recipient_id = "C1T-Truck";
-      result.m_header.plan_id = "";
-      result.m_header.timestamp = clock_->now().nanoseconds()/1E6; // uint64 milliseconds since unix epoch
-      result.strategy = "carma/port_drayage";
+      else if (previous_mobility_operation_msg_.operation->getOperationID() == OperationID::Operation::DROPOFF)
+      {
+        cargo_id_ = "";
+      }
+      else if (cargo_id_ != "")
+      {
+        mobility_operation_json["cargo_id"] = cargo_id_;
+      }
+
+      mobility_operation_json["cargo"] = cargo_id_ != "";
       result.strategy_params = mobility_operation_json.dump();
       mobility_operation_publisher_->publish(std::move(result));
       return;
@@ -164,4 +198,28 @@ auto PortDrayageDemo::on_odometry_received(const geometry_msgs::msg::PoseWithCov
   current_odometry_ = msg;
 }
 
+auto PortDrayageDemo::extract_port_drayage_message(const carma_v2x_msgs::msg::MobilityOperation & msg)
+  -> bool
+{
+  try {
+    const auto strategy_params_json = nlohmann::json::parse(msg.strategy_params);
+    const auto cmv_id{strategy_params_json["cmv_id"].template get<std::string>()};
+    if (cmv_id != cmv_id_)
+    {
+      RCLCPP_WARN(get_logger(), "Ignoring received port drayage MobilityOperation message intended for cmv_id %s", cmv_id.c_str());
+      return false;
+    }
+
+    previous_mobility_operation_msg_.dest_longitude = strategy_params_json["destination"]["longitude"].template get<double>();
+    previous_mobility_operation_msg_.dest_latitude = strategy_params_json["destination"]["latitude"].template get<double>();
+    previous_mobility_operation_msg_.operation = std::shared_ptr<OperationID>(new OperationID(strategy_params_json["operation"].template get<std::string>()));
+    previous_mobility_operation_msg_.cargo_id = strategy_params_json["cargo_id"].template get<std::string>();
+    previous_mobility_operation_msg_.current_action_id = strategy_params_json["action_id"].template get<std::string>();
+  } catch (const nlohmann::json::exception & e) {
+    RCLCPP_ERROR_STREAM(
+      get_logger(), "Could not process MobilityOperation message: JSON error: " << e.what());
+      return false;
+  }
+  return true;
+}
 }  // namespace carma_nav2_port_drayage_demo
