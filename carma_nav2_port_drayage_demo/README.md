@@ -15,7 +15,6 @@ The definition of the `carma_v2x_msgs/msg/MobilityOperation` is as follows:
 
 # standard header for all mobility messages
 carma_v2x_msgs/MobilityHeader  m_header
-	#
 	string  sender_id
 	string  recipient_id
 	string sender_bsm_id
@@ -30,7 +29,29 @@ string                   strategy
 string                   strategy_params
 ```
 
-For the purpose of this demo, the only necessary fields to populate when sending instructions to the vehicle are `strategy` and `strategy_params`. The `strategy` field should always be set to `carma/port_drayage`. The `strategy_params` field should be set to a JSON string that follows the format detailed [here](https://usdot-carma.atlassian.net/wiki/spaces/CRMFRT/pages/2006482998/Detailed+Design+-+Port+Drayage+Plugin+V2X-Hub#Communication). For example, to send a Mobility Operation Message instructing the vehicle to pick up cargo with the ID "`C1T_CARGO`" at `(x,y)` coordinates `(3.8, 0.5)` using the ROS2 CLI, run the command:
+For the purpose of this demo, the only necessary fields to populate when sending instructions to the vehicle are `strategy` and `strategy_params`. The `strategy` field should always be set to `carma/port_drayage`. The `strategy_params` field should be set to a JSON string with the following format:
+
+```
+// Example Mobility Operation strategy_params JSON payload with message's strategy set to "carma/port_drayage":
+{
+  "cmv_id": "DOT-80550",                // [Required from all] string unique identifier for CMV 
+  "operation": "ENTERING_STAGING_AREA", // [Required from all] Enum to indicate the type of action
+                                        // NOTE: Possible operations include: PICKUP, DROPOFF, PORT_CHECKPOINT, HOLDING_AREA, 
+                                        //                                    ENTER_STAGING_AREA, EXIT_STAGING_AREA, ENTER_PORT, EXIT_PORT
+  "cargo": false,                       // [Required from all with PICKUP/DROPOFF operation] boolean flag to indicate whether the CMV is loaded with cargo
+  "cargo_id": "SOME_CARGO",             // [Required from all with PICKUP/DROPOFF operation] string unique identifier for cargo
+  "location": {                         // [Required from CMV] current location of the CMV
+    "longitude": 0, 
+    "latitude": 0}, 
+  "destination": {                      // [Required from infrastructure] optional destination for CMV
+    "longitude": 0,
+    "latitude": 0},
+  "action_id": "SOMEUID"                // [Required from all] string UUID to identify action
+  }
+```
+
+
+For example, to send a Mobility Operation Message instructing the Turtlebot to pick up cargo with the ID "`C1T_CARGO`" at `(x,y)` coordinates `(3.8, 0.5)` using the ROS2 CLI, run the command:
 
 ```
 ros2 topic pub --once /incoming_mobility_operation carma_v2x_msgs/msg/MobilityOperation "m_header:
