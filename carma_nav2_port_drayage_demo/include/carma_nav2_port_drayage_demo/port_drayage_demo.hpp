@@ -135,7 +135,7 @@ public:
 
   auto extract_port_drayage_message(const carma_v2x_msgs::msg::MobilityOperation & msg) -> bool;
 
-  auto set_cmv_id(std::string cmv_id) -> void { cmv_id_ =  cmv_id; }
+  auto set_cmv_id(std::string cmv_id) -> void { cmv_id_ = cmv_id; }
 
   auto get_cmv_id() -> std::string { return cmv_id_; }
 

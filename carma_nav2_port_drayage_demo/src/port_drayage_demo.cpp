@@ -222,6 +222,11 @@ auto PortDrayageDemo::extract_port_drayage_message(
         "Ignoring received port drayage MobilityOperation message intended for cmv_id %s",
         cmv_id.c_str());
       return false;
+    } else if (msg.strategy != "carma/port_drayage") {
+      RCLCPP_WARN(
+        get_logger(), "Ignoring received MobilityOperation message with strategy %s",
+        msg.strategy.c_str());
+      return false;
     }
 
     previous_mobility_operation_msg_.dest_longitude =
