@@ -14,9 +14,6 @@
 
 #include "carma_nav2_port_drayage_demo/port_drayage_demo.hpp"
 
-#include <nav2_msgs/action/follow_waypoints.hpp>
-#include <nav2_util/lifecycle_node.hpp>
-
 namespace carma_nav2_port_drayage_demo
 {
 
@@ -147,6 +144,7 @@ auto PortDrayageDemo::on_mobility_operation_received(
   send_goal_options.result_callback =
     std::bind(&PortDrayageDemo::on_result_received, this, std::placeholders::_1);
   follow_waypoints_client_->async_send_goal(goal, send_goal_options);
+  actively_executing_operation_ = true;
 }
 
 auto PortDrayageDemo::on_result_received(
@@ -191,6 +189,7 @@ auto PortDrayageDemo::on_result_received(
       mobility_operation_json["cargo"] = cargo_id_ != "";
       result.strategy_params = mobility_operation_json.dump();
       mobility_operation_publisher_->publish(std::move(result));
+      actively_executing_operation_ = false;
       return;
     }
     case rclcpp_action::ResultCode::ABORTED:
