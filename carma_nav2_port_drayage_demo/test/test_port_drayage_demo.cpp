@@ -91,7 +91,7 @@ TEST(PortDrayageTest, strategyTest)
 }
 
 // Test vehicle pickup and dropoff
-TEST(PortDrayageTest, activelyExecutingTest)
+TEST(PortDrayageTest, pickupAndDropoffTest)
 {
   // PICKUP
   auto node{std::make_shared<carma_nav2_port_drayage_demo::PortDrayageDemo>(rclcpp::NodeOptions{})};
@@ -129,6 +129,41 @@ TEST(PortDrayageTest, activelyExecutingTest)
   node->on_result_received(result);
   ASSERT_EQ(node->get_cargo_id(), "");
   ASSERT_FALSE(node->is_actively_executing_operation());
+}
+
+// Test vehicle ack formatting
+TEST(PortDrayageTest, acknowledgementTest)
+{
+  auto node{std::make_shared<carma_nav2_port_drayage_demo::PortDrayageDemo>(rclcpp::NodeOptions{})};
+  node->on_configure(node->get_current_state());
+  node->set_cmv_id("test_cmv_id");
+  // Create Mobility Operation Message
+  carma_v2x_msgs::msg::MobilityOperation cmd;
+  cmd.m_header.sender_id = "test_cmv_id";
+  cmd.strategy = "carma/port_drayage";
+  // Set JSON fields
+  nlohmann::json mobility_operation_json, location_json;
+  location_json["longitude"] = 0.0;
+  location_json["latitude"] = 0.0;
+  mobility_operation_json["destination"] = location_json;
+  mobility_operation_json["cmv_id"] = "test_cmv_id";
+  mobility_operation_json["operation"] = "PICKUP";
+  mobility_operation_json["action_id"] = "some_action";
+  mobility_operation_json["cargo_id"] = "new_cargo";
+  mobility_operation_json["cargo"] = true;
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  carma_v2x_msgs::msg::MobilityOperation ack = node->compose_arrival_message();
+  const auto strategy_params_json = nlohmann::json::parse(ack.strategy_params);
+  ASSERT_NEAR(node->get_clock()->now().nanoseconds() / 1E6, ack.m_header.timestamp, 1E3);
+  ASSERT_EQ(ack.strategy, "carma/port_drayage");
+  ASSERT_EQ(strategy_params_json["location"]["longitude"], 0.0);
+  ASSERT_EQ(strategy_params_json["location"]["latitude"], 0.0);
+  ASSERT_EQ(strategy_params_json["cmv_id"], "test_cmv_id");
+  ASSERT_EQ(strategy_params_json["operation"], "PICKUP");
+  ASSERT_EQ(strategy_params_json["action_id"], "some_action");
+  ASSERT_EQ(strategy_params_json["cargo_id"], "new_cargo");
+  ASSERT_TRUE(strategy_params_json["cargo"]);
 }
 
 int main(int argc, char ** argv)

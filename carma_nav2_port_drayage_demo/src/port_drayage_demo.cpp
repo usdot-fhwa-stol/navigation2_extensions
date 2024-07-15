@@ -154,40 +154,7 @@ auto PortDrayageDemo::on_result_received(
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED: {
       // Create arrival message
-      carma_v2x_msgs::msg::MobilityOperation result;
-      // Populate message header
-      result.m_header.sender_id = cmv_id_;
-      result.m_header.recipient_id = "";
-      result.m_header.plan_id = "";
-      result.m_header.timestamp =
-        clock_->now().nanoseconds() / 1E6;  // epoch to uint64 milliseconds
-      // Set strategy
-      result.strategy = "carma/port_drayage";
-      // Set JSON fields
-      nlohmann::json mobility_operation_json, location_json;
-      location_json["longitude"] = current_odometry_.pose.pose.position.x;
-      location_json["latitude"] = current_odometry_.pose.pose.position.y;
-      mobility_operation_json["location"] = location_json;
-      mobility_operation_json["cmv_id"] = cmv_id_;
-      mobility_operation_json["operation"] =
-        previous_mobility_operation_msg_.operation->operationToString();
-      mobility_operation_json["action_id"] = previous_mobility_operation_msg_.current_action_id;
-      // Update Cargo ID and set JSON field
-      if (
-        previous_mobility_operation_msg_.operation->getOperationID() ==
-        OperationID::Operation::PICKUP) {
-        cargo_id_ = previous_mobility_operation_msg_.cargo_id;
-        mobility_operation_json["cargo_id"] = cargo_id_;
-      } else if (
-        previous_mobility_operation_msg_.operation->getOperationID() ==
-        OperationID::Operation::DROPOFF) {
-        cargo_id_ = "";
-      } else if (cargo_id_ != "") {
-        mobility_operation_json["cargo_id"] = cargo_id_;
-      }
-
-      mobility_operation_json["cargo"] = cargo_id_ != "";
-      result.strategy_params = mobility_operation_json.dump();
+      carma_v2x_msgs::msg::MobilityOperation result = compose_arrival_message();
       mobility_operation_publisher_->publish(std::move(result));
       actively_executing_operation_ = false;
       return;
@@ -245,5 +212,42 @@ auto PortDrayageDemo::extract_port_drayage_message(
     return false;
   }
   return true;
+}
+
+auto PortDrayageDemo::compose_arrival_message() -> carma_v2x_msgs::msg::MobilityOperation
+{
+  carma_v2x_msgs::msg::MobilityOperation result;
+  // Populate message header
+  result.m_header.sender_id = cmv_id_;
+  result.m_header.recipient_id = "";
+  result.m_header.plan_id = "";
+  result.m_header.timestamp = clock_->now().nanoseconds() / 1E6;  // epoch to uint64 milliseconds
+  // Set strategy
+  result.strategy = "carma/port_drayage";
+  // Set JSON fields
+  nlohmann::json mobility_operation_json, location_json;
+  location_json["longitude"] = current_odometry_.pose.pose.position.x;
+  location_json["latitude"] = current_odometry_.pose.pose.position.y;
+  mobility_operation_json["location"] = location_json;
+  mobility_operation_json["cmv_id"] = cmv_id_;
+  mobility_operation_json["operation"] =
+    previous_mobility_operation_msg_.operation->operationToString();
+  mobility_operation_json["action_id"] = previous_mobility_operation_msg_.current_action_id;
+  // Update Cargo ID and set JSON field
+  if (
+    previous_mobility_operation_msg_.operation->getOperationID() ==
+    OperationID::Operation::PICKUP) {
+    cargo_id_ = previous_mobility_operation_msg_.cargo_id;
+    mobility_operation_json["cargo_id"] = cargo_id_;
+  } else if (
+    previous_mobility_operation_msg_.operation->getOperationID() ==
+    OperationID::Operation::DROPOFF) {
+    cargo_id_ = "";
+  } else if (cargo_id_ != "") {
+    mobility_operation_json["cargo_id"] = cargo_id_;
+  }
+  mobility_operation_json["cargo"] = cargo_id_ != "";
+  result.strategy_params = mobility_operation_json.dump();
+  return result;
 }
 }  // namespace carma_nav2_port_drayage_demo

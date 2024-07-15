@@ -133,6 +133,8 @@ public:
 
   auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
 
+  auto compose_arrival_message() -> carma_v2x_msgs::msg::MobilityOperation;
+
   auto extract_port_drayage_message(const carma_v2x_msgs::msg::MobilityOperation & msg) -> bool;
 
   auto set_cmv_id(std::string cmv_id) -> void { cmv_id_ = cmv_id; }
