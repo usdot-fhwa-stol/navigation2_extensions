@@ -139,8 +139,6 @@ public:
 
   auto get_cmv_id() -> std::string { return cmv_id_; }
 
-  auto set_cargo_id(std::string cargo_id) -> std::string { return cargo_id_; }
-
   auto get_cargo_id() -> std::string { return cargo_id_; }
 
   auto is_actively_executing_operation() -> bool { return actively_executing_operation_; }
