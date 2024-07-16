@@ -166,6 +166,112 @@ TEST(PortDrayageTest, acknowledgementTest)
   ASSERT_TRUE(strategy_params_json["cargo"]);
 }
 
+// Test full demo
+TEST(PortDrayageTest, fullDemoTest)
+{
+  // Configuring
+  auto node{std::make_shared<carma_nav2_port_drayage_demo::PortDrayageDemo>(rclcpp::NodeOptions{})};
+  node->on_configure(node->get_current_state());
+  node->set_cmv_id("test_cmv_id");
+  // ENTER STAGING AREA
+  carma_v2x_msgs::msg::MobilityOperation cmd;
+  cmd.m_header.sender_id = "test_cmv_id";
+  cmd.strategy = "carma/port_drayage";
+  nlohmann::json mobility_operation_json, location_json;
+  location_json["longitude"] = 0.0;
+  location_json["latitude"] = 0.0;
+  mobility_operation_json["destination"] = location_json;
+  mobility_operation_json["cmv_id"] = "test_cmv_id";
+  mobility_operation_json["operation"] = "ENTER_STAGING_AREA";
+  mobility_operation_json["action_id"] = "1";
+  mobility_operation_json["cargo_id"] = "";
+  mobility_operation_json["cargo"] = true;
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult result;
+  result.code = rclcpp_action::ResultCode::SUCCEEDED;
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // PICKUP
+  mobility_operation_json["operation"] = "PICKUP";
+  mobility_operation_json["cargo_id"] = "CARGO_A";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_A");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // EXIT STAGING AREA
+  mobility_operation_json["operation"] = "EXIT_STAGING_AREA";
+  mobility_operation_json["cargo_id"] = "";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_A");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // ENTER PORT
+  mobility_operation_json["operation"] = "ENTER_PORT";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_A");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // DROPOFF
+  mobility_operation_json["operation"] = "DROPOFF";
+  mobility_operation_json["cargo_id"] = "CARGO_A";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // PICKUP
+  mobility_operation_json["operation"] = "PICKUP";
+  mobility_operation_json["cargo_id"] = "CARGO_B";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_B");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // PORT CHECKPOINT
+  mobility_operation_json["operation"] = "PORT_CHECKPOINT";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_B");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // HOLDING AREA
+  mobility_operation_json["operation"] = "HOLDING_AREA";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_B");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // EXIT PORT
+  mobility_operation_json["operation"] = "EXIT_PORT";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_B");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+  // ENTER STAGING AREA
+  mobility_operation_json["operation"] = "ENTER_STAGING_AREA";
+  cmd.strategy_params = mobility_operation_json.dump();
+  node->on_mobility_operation_received(cmd);
+  ASSERT_TRUE(node->is_actively_executing_operation());
+  node->on_result_received(result);
+  ASSERT_EQ(node->get_cargo_id(), "CARGO_B");
+  ASSERT_FALSE(node->is_actively_executing_operation());
+}
+
 int main(int argc, char ** argv)
 {
   ::testing::InitGoogleTest(&argc, argv);
