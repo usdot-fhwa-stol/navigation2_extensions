@@ -49,6 +49,14 @@ install(DIRECTORY include/
   DESTINATION include/
 )
 
+# Testing
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies() # This populates the ${${PROJECT_NAME}_FOUND_TEST_DEPENDS} variable#
+  find_package(ament_cmake_gtest REQUIRED)
+  add_subdirectory(test)
+endif()
+
 ament_export_include_directories(
   include
 )
