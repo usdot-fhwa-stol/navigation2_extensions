@@ -110,7 +110,7 @@ struct PortDrayageMobilityOperationMsg
   PortDrayageMobilityOperationMsg()
   {
     operation =
-      std::shared_ptr<OperationID>(new OperationID{OperationID::Operation::ENTER_STAGING_AREA});
+      std::shared_ptr<OperationID>(new OperationID{OperationID::Operation::DEFAULT_OPERATION});
   }
 };
 
