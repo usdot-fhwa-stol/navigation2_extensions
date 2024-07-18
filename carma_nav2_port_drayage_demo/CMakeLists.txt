@@ -28,8 +28,6 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_port_drayage_demo test/test_port_drayage_demo.cpp)
 
-  ament_target_dependencies(test_port_drayage_demo ${${PROJECT_NAME}_FOUND_TEST_DEPENDS})
-
   target_link_libraries(test_port_drayage_demo carma_nav2_port_drayage_demo)
 
 endif()
