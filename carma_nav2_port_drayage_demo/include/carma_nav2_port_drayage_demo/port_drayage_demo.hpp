@@ -98,6 +98,10 @@ private:
   const Operation operation_enum_ = Operation::DEFAULT_OPERATION;
 };
 
+/**
+  * \brief Convenience struct for storing all data contained in a received MobilityOperation message's
+  * strategy_params field with strategy "carma/port_drayage"
+  */
 struct PortDrayageMobilityOperationMsg
 {
   std::string cargo_id;
@@ -114,29 +118,61 @@ struct PortDrayageMobilityOperationMsg
   }
 };
 
+/**
+ * Port Drayage implementation integrated with the Navigation2 autonomy stack
+ */
 class PortDrayageDemo : public rclcpp_lifecycle::LifecycleNode
 {
 public:
+
+  /**
+   * \brief PortDrayageDemo constructor
+   */
   explicit PortDrayageDemo(const rclcpp::NodeOptions & options);
 
+  /**
+   * \brief Callback for incoming mobility operation messages
+   * \param msg Incoming mobility operation message
+   */
+  auto on_mobility_operation_received(const carma_v2x_msgs::msg::MobilityOperation & msg) -> void;
+
+  /**
+   * \brief Callback triggered after a port drayage action is completed to publish an ack
+   * \param result The result of the action
+   */
+  auto on_result_received(
+    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult &
+      result) -> void;
+
+  /**
+   * \brief Callback that stores the vehicle's odometry
+   * \param msg The odometry to store
+   */
+  auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
+
+  /**
+   * \brief Helper function to compose the ack published in on_result_received
+   */
+  auto compose_arrival_message() -> carma_v2x_msgs::msg::MobilityOperation;
+
+  /**
+   * \brief Helper function that creates a PortDrayageMobilityOperationMsg from a ROS message
+   * \param msg The mobility operation message to convert to a struct and store in previous_mobility_operation_msg_
+   */
+  auto extract_port_drayage_message(const carma_v2x_msgs::msg::MobilityOperation & msg) -> bool;
+
+  ////
+  // Overrides
+  ////
   auto on_configure(const rclcpp_lifecycle::State & state) -> nav2_util::CallbackReturn override;
 
   auto on_activate(const rclcpp_lifecycle::State & state) -> nav2_util::CallbackReturn override;
 
   auto on_deactivate(const rclcpp_lifecycle::State & state) -> nav2_util::CallbackReturn override;
 
-  auto on_mobility_operation_received(const carma_v2x_msgs::msg::MobilityOperation & msg) -> void;
-
-  auto on_result_received(
-    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult &
-      result) -> void;
-
-  auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
-
-  auto compose_arrival_message() -> carma_v2x_msgs::msg::MobilityOperation;
-
-  auto extract_port_drayage_message(const carma_v2x_msgs::msg::MobilityOperation & msg) -> bool;
-
+  ////
+  // Accessors
+  ////
   auto set_cmv_id(std::string cmv_id) -> void { cmv_id_ = cmv_id; }
 
   auto get_cmv_id() -> std::string { return cmv_id_; }
@@ -146,6 +182,9 @@ public:
   auto is_actively_executing_operation() -> bool { return actively_executing_operation_; }
 
 private:
+  ////
+  // Pubs & Subs
+  ////
   rclcpp::Subscription<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_subscription_{nullptr};
 
@@ -155,15 +194,23 @@ private:
   rclcpp::Publisher<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_publisher_{nullptr};
 
+  ////
+  // Action Client
+  ////
   rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SharedPtr follow_waypoints_client_{
     nullptr};
 
+  // Current odometry
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
-
+  // Vehicle identifier
   std::string cmv_id_;
+  // Cargo identified
   std::string cargo_id_;
+  // Flag for whether vehicle is busy
   bool actively_executing_operation_ = false;
+  // Clock
   rclcpp::Clock::SharedPtr clock_;
+  // Previously received Mobility Operation message
   PortDrayageMobilityOperationMsg previous_mobility_operation_msg_;
 };
 }  // namespace carma_nav2_port_drayage_demo
