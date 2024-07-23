@@ -140,8 +140,10 @@ TEST_F(ComputeRouteActionTestFixture, test_tick)
   config_->blackboard->set("goal", goal);
 
   // tick until node succeeds
-  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS) {
+  uint16_t iter = 0; // safety to prevent infinite loop
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 50) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   // the goal should have reached our server
@@ -163,9 +165,10 @@ TEST_F(ComputeRouteActionTestFixture, test_tick)
   // set new goal
   goal.pose.position.x = -2.5;
   config_->blackboard->set("goal", goal);
-
-  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS) {
+  iter = 0;
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 50) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   EXPECT_EQ(tree_->rootNode()->status(), BT::NodeStatus::SUCCESS);
@@ -203,8 +206,10 @@ TEST_F(ComputeRouteActionTestFixture, test_tick_use_start)
   config_->blackboard->set("goal", goal);
 
   // tick until node succeeds
-  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS) {
+  uint16_t iter = 0; // safety to prevent infinite loop
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 50) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   // the goal should have reached our server
@@ -230,8 +235,10 @@ TEST_F(ComputeRouteActionTestFixture, test_tick_use_start)
   config_->blackboard->set("goal", goal);
   config_->blackboard->set("start", start);
 
-  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS) {
+  iter = 0; // safety to prevent infinite loop
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 50) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   EXPECT_EQ(tree_->rootNode()->status(), BT::NodeStatus::SUCCESS);
@@ -266,9 +273,12 @@ TEST_F(ComputeRouteActionTestFixture, test_cancel)
   client_->async_cancel_all_goals();
 
   // tick until node succeeds
+  uint16_t iter = 0; // safety to prevent infinite loop
   while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS &&
-    tree_->rootNode()->status() != BT::NodeStatus::FAILURE) {
+    tree_->rootNode()->status() != BT::NodeStatus::FAILURE &&
+    iter < 50) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   EXPECT_EQ(tree_->rootNode()->status(), BT::NodeStatus::SUCCESS);
@@ -296,9 +306,12 @@ TEST_F(ComputeRouteActionTestFixture, test_abort)
   config_->blackboard->set("goal", goal);
 
   // tick until node fails
+  uint16_t iter = 0; // safety to prevent infinite loop
   while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS &&
-    tree_->rootNode()->status() != BT::NodeStatus::FAILURE) {
+    tree_->rootNode()->status() != BT::NodeStatus::FAILURE &&
+    iter < 50) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   // the goal should have been aborted due to NaN in input
