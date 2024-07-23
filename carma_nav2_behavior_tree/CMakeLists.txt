@@ -53,8 +53,19 @@ install(DIRECTORY include/
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies() # This populates the ${${PROJECT_NAME}_FOUND_TEST_DEPENDS} variable#
-  find_package(ament_cmake_gtest REQUIRED)
-  add_subdirectory(test)
+
+  ament_add_gtest(test_compute_route_action
+  test/plugins/action/test_compute_route_action.cpp
+  )
+  ament_target_dependencies(test_compute_route_action ${dependencies})
+  target_link_libraries(test_compute_route_action ${plugin_libs})
+
+  ament_add_gtest(test_compute_and_track_route_action
+    test/plugins/action/test_compute_and_track_route_action.cpp
+  )
+  ament_target_dependencies(test_compute_and_track_route_action ${dependencies})
+  target_link_libraries(test_compute_and_track_route_action ${plugin_libs})
+
 endif()
 
 ament_export_include_directories(
