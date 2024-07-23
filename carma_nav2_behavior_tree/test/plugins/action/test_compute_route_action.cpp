@@ -47,7 +47,6 @@ protected:
       while (!goal_handle->is_canceling()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(15));
       }
-      goal_handle->canceled(result);
       return;
     }
     result->path.poses.resize(2);
@@ -263,8 +262,6 @@ TEST_F(ComputeRouteActionTestFixture, test_cancel)
   goal.header.stamp = node_->now();
   goal.pose.position.x = 1000.0;
   config_->blackboard->set("goal", goal);
-  // Adding a sleep so that the goal has time to be sent
-  std::this_thread::sleep_for(std::chrono::milliseconds(15));
   // Send a request to cancel the goal
   client_->async_cancel_all_goals();
 
