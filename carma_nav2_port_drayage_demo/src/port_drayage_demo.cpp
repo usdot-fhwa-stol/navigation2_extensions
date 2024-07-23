@@ -86,9 +86,8 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
 
   clock_ = get_clock();
 
-  follow_waypoints_client_ = rclcpp_action::create_client<nav2_msgs::action::FollowWaypoints>(
-    get_node_base_interface(), get_node_graph_interface(), get_node_logging_interface(),
-    get_node_waitables_interface(), "follow_waypoints");
+  route_client_ = rclcpp_action::create_client<nav2_msgs::action::ComputeAndTrackRoute>(this, "compute_and_track_route");
+  follow_path_client_ = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "follow_path");
 
   mobility_operation_subscription_ = create_subscription<carma_v2x_msgs::msg::MobilityOperation>(
     "incoming_mobility_operation", 1, [this](const carma_v2x_msgs::msg::MobilityOperation & msg) {
@@ -132,23 +131,71 @@ auto PortDrayageDemo::on_mobility_operation_received(
     return;
   }
   if (!extract_port_drayage_message(msg)) return;
-  nav2_msgs::action::FollowWaypoints::Goal goal;
+  nav2_msgs::action::ComputeAndTrackRoute::Goal goal;
 
   geometry_msgs::msg::PoseStamped pose;
-  pose.header.frame_id = "map";
-  pose.pose.position.x = previous_mobility_operation_msg_.dest_longitude;
-  pose.pose.position.y = previous_mobility_operation_msg_.dest_latitude;
-  goal.poses.push_back(std::move(pose));
+  goal.start_id = 1u;
+  goal.start.header.frame_id = "map";
+  goal.start.header.stamp = this->now();
+  goal.start.pose.position.x = current_odometry_.pose.pose.position.x;
+  goal.start.pose.position.y = current_odometry_.pose.pose.position.y;
+  goal.goal.header.frame_id = "map";
+  goal.goal.header.stamp = this->now();
+  goal.goal.pose.position.x = previous_mobility_operation_msg_.dest_longitude;
+  goal.goal.pose.position.y = previous_mobility_operation_msg_.dest_latitude;
+  goal.goal_id = 2u;
+  goal.use_start = false;
+  goal.use_poses = true;
+  
   auto send_goal_options =
-    rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SendGoalOptions();
-  send_goal_options.result_callback =
-    std::bind(&PortDrayageDemo::on_result_received, this, std::placeholders::_1);
-  follow_waypoints_client_->async_send_goal(goal, send_goal_options);
-  actively_executing_operation_ = true;
+    rclcpp_action::Client<nav2_msgs::action::ComputeAndTrackRoute>::SendGoalOptions();
+  send_goal_options.feedback_callback = std::bind(
+    &PortDrayageDemo::route_feedback_callback, this, std::placeholders::_1, std::placeholders::_2);
+  send_goal_options.result_callback = std::bind(
+    &PortDrayageDemo::route_result_callback, this, std::placeholders::_1);
+  route_client_->async_send_goal(goal, send_goal_options);
 }
 
-auto PortDrayageDemo::on_result_received(
-  const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult & result)
+void PortDrayageDemo::route_feedback_callback(rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>::SharedPtr,
+                               const std::shared_ptr<const nav2_msgs::action::ComputeAndTrackRoute::Feedback> feedback)
+{
+  RCLCPP_INFO(get_logger(), "Received feedback with path containing %zu poses", feedback->path.poses.size());
+
+  if (feedback->path.poses.size() > 0) {
+    actively_executing_operation_ = true;
+
+    auto follow_path_goal = nav2_msgs::action::FollowPath::Goal();
+    follow_path_goal.path = feedback->path;
+    follow_path_goal.controller_id = "";
+
+    auto follow_path_options = rclcpp_action::Client<nav2_msgs::action::FollowPath>::SendGoalOptions();
+    follow_path_options.result_callback = std::bind(&PortDrayageDemo::follow_path_result_callback, this, std::placeholders::_1);
+    
+    follow_path_client_->async_send_goal(follow_path_goal, follow_path_options);
+  }
+}
+
+void PortDrayageDemo::route_result_callback(const rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>::WrappedResult & result)
+{
+  if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+    RCLCPP_INFO(get_logger(), "Route computation succeeded");
+
+    auto follow_path_goal = nav2_msgs::action::FollowPath::Goal();
+    follow_path_goal.path = computed_path_;
+    follow_path_goal.controller_id = "";
+
+    auto follow_path_options = rclcpp_action::Client<nav2_msgs::action::FollowPath>::SendGoalOptions();
+    follow_path_options.result_callback = std::bind(&PortDrayageDemo::follow_path_result_callback, this, std::placeholders::_1);
+    
+    follow_path_client_->async_send_goal(follow_path_goal, follow_path_options);
+  } 
+  else {
+    RCLCPP_ERROR(get_logger(), "Route computation failed");
+  }
+}
+
+auto PortDrayageDemo::follow_path_result_callback(
+  const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowPath>::WrappedResult & result)
   -> void
 {
   switch (result.code) {

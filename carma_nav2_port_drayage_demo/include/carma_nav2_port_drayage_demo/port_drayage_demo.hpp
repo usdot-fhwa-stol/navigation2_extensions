@@ -18,7 +18,8 @@
 #include <carma_v2x_msgs/msg/mobility_operation.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <memory>
-#include <nav2_msgs/action/follow_waypoints.hpp>
+#include <nav2_msgs/action/compute_and_track_route.hpp>
+#include <nav2_msgs/action/follow_path.hpp>
 #include <nav2_util/lifecycle_node.hpp>
 #include <nlohmann/json.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -140,8 +141,24 @@ public:
    * \brief Callback triggered after a port drayage action is completed to publish an ack
    * \param result The result of the action
    */
-  auto on_result_received(
-    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowWaypoints>::WrappedResult &
+  auto route_feedback_callback(
+    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>::SharedPtr,
+    const std::shared_ptr<const nav2_msgs::action::ComputeAndTrackRoute::Feedback> feedback) -> void;
+
+  /**
+   * \brief Callback triggered after a port drayage action is completed to publish an ack
+   * \param result The result of the action
+   */
+  auto route_result_callback(
+    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>::WrappedResult &
+      result) -> void;
+  
+  /**
+   * \brief Callback triggered after a port drayage action is completed to publish an ack
+   * \param result The result of the action
+   */
+  auto follow_path_result_callback(
+    const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowPath>::WrappedResult &
       result) -> void;
 
   /**
@@ -151,7 +168,7 @@ public:
   auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
 
   /**
-   * \brief Helper function to compose the ack published in on_result_received
+   * \brief Helper function to compose the ack published in follow_path_result_callback
    */
   auto compose_arrival_message() -> carma_v2x_msgs::msg::MobilityOperation;
 
@@ -197,8 +214,9 @@ private:
   ////
   // Action Client
   ////
-  rclcpp_action::Client<nav2_msgs::action::FollowWaypoints>::SharedPtr follow_waypoints_client_{
-    nullptr};
+  rclcpp_action::Client<nav2_msgs::action::ComputeAndTrackRoute>::SharedPtr route_client_{nullptr};
+  rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr follow_path_client_{nullptr};
+  nav_msgs::msg::Path computed_path_;
 
   // Current odometry
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
