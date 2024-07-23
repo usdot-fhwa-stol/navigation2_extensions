@@ -36,7 +36,18 @@ protected:
                rclcpp_action::ServerGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>>
                  goal_handle) override
   {
+    const auto goal = goal_handle->get_goal();
     auto result = std::make_shared<nav2_msgs::action::ComputeAndTrackRoute::Result>();
+    if (std::isnan(goal->goal.pose.position.x)) {
+      result->error_code = 1;
+      goal_handle->abort(result);
+      return;
+    } else if (goal->goal.pose.position.x > 100.0) {
+      while (!goal_handle->is_canceling()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(15));
+      }
+      return;
+    }
     goal_handle->succeed(result);
   }
 };
@@ -59,9 +70,9 @@ public:
       "server_timeout", std::chrono::milliseconds(20));
     config_->blackboard->set<std::chrono::milliseconds>(
       "bt_loop_duration", std::chrono::milliseconds(10));
-    config_->blackboard->set<std::chrono::milliseconds>(
-      "wait_for_service_timeout", std::chrono::milliseconds(1000));
     config_->blackboard->set("initial_pose_received", false);
+    client_ = rclcpp_action::create_client<nav2_msgs::action::ComputeAndTrackRoute>(
+      node_, "compute_and_track_route");
 
     BT::NodeBuilder builder = [](const std::string & name, const BT::NodeConfiguration & config) {
       return std::make_unique<carma_nav2_behavior_tree::ComputeAndTrackRouteAction>(
@@ -79,11 +90,13 @@ public:
     node_.reset();
     action_server_.reset();
     factory_.reset();
+    client_.reset();
   }
 
   void TearDown() override { tree_.reset(); }
 
   static std::shared_ptr<ComputeAndTrackRouteActionServer> action_server_;
+  static std::shared_ptr<rclcpp_action::Client<nav2_msgs::action::ComputeAndTrackRoute>> client_;
 
 protected:
   static rclcpp::Node::SharedPtr node_;
@@ -98,6 +111,8 @@ std::shared_ptr<ComputeAndTrackRouteActionServer>
 BT::NodeConfiguration * ComputeAndTrackRouteActionTestFixture::config_ = nullptr;
 std::shared_ptr<BT::BehaviorTreeFactory> ComputeAndTrackRouteActionTestFixture::factory_ = nullptr;
 std::shared_ptr<BT::Tree> ComputeAndTrackRouteActionTestFixture::tree_ = nullptr;
+std::shared_ptr<rclcpp_action::Client<nav2_msgs::action::ComputeAndTrackRoute>> ComputeAndTrackRouteActionTestFixture::client_ = nullptr;
+
 
 TEST_F(ComputeAndTrackRouteActionTestFixture, test_tick)
 {
@@ -142,6 +157,68 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_tick)
 
   EXPECT_EQ(action_server_->getCurrentGoal()->goal, goal);
   EXPECT_EQ(tree_->rootNode()->status(), BT::NodeStatus::SUCCESS);
+}
+
+TEST_F(ComputeAndTrackRouteActionTestFixture, test_cancel)
+{
+  // create tree
+  std::string xml_txt =
+    R"(
+        <root BTCPP_format="4">
+          <BehaviorTree ID="MainTree">
+              <ComputeAndTrackRoute goal="{goal}"/>
+          </BehaviorTree>
+        </root>)";
+
+  tree_ = std::make_shared<BT::Tree>(factory_->createTreeFromText(xml_txt, config_->blackboard));
+
+
+  // create new goal and set it on blackboard
+  geometry_msgs::msg::PoseStamped goal;
+  goal.header.stamp = node_->now();
+  goal.pose.position.x = 1000.0;
+  config_->blackboard->set("goal", goal);
+  // Send a request to cancel the goal
+  client_->async_cancel_all_goals();
+
+  // tick until node succeeds
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS &&
+    tree_->rootNode()->status() != BT::NodeStatus::FAILURE) {
+    tree_->rootNode()->executeTick();
+  }
+
+  EXPECT_EQ(tree_->rootNode()->status(), BT::NodeStatus::SUCCESS);
+
+  EXPECT_TRUE(action_server_->isGoalCancelled());
+}
+
+TEST_F(ComputeAndTrackRouteActionTestFixture, test_abort)
+{
+  // create tree
+  std::string xml_txt =
+    R"(
+        <root BTCPP_format="4">
+          <BehaviorTree ID="MainTree">
+              <ComputeAndTrackRoute goal="{goal}"/>
+          </BehaviorTree>
+        </root>)";
+
+  tree_ = std::make_shared<BT::Tree>(factory_->createTreeFromText(xml_txt, config_->blackboard));
+
+  // create new goal and set it on blackboard
+  geometry_msgs::msg::PoseStamped goal;
+  goal.header.stamp = node_->now();
+  goal.pose.position.x = std::numeric_limits<double>::quiet_NaN();
+  config_->blackboard->set("goal", goal);
+
+  // tick until node fails
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS &&
+    tree_->rootNode()->status() != BT::NodeStatus::FAILURE) {
+    tree_->rootNode()->executeTick();
+  }
+
+  // the goal should have been aborted due to NaN in input
+  EXPECT_EQ(tree_->rootNode()->status(), BT::NodeStatus::FAILURE);
 }
 
 int main(int argc, char ** argv)
