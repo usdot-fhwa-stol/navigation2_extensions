@@ -137,6 +137,7 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_tick)
   uint16_t iter = 0;  // safety to prevent infinite loop
   while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 500) {
     tree_->rootNode()->executeTick();
+    ++iter;
   }
 
   // goal should have reached our server
