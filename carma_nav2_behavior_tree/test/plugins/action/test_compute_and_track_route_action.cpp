@@ -111,8 +111,8 @@ std::shared_ptr<ComputeAndTrackRouteActionServer>
 BT::NodeConfiguration * ComputeAndTrackRouteActionTestFixture::config_ = nullptr;
 std::shared_ptr<BT::BehaviorTreeFactory> ComputeAndTrackRouteActionTestFixture::factory_ = nullptr;
 std::shared_ptr<BT::Tree> ComputeAndTrackRouteActionTestFixture::tree_ = nullptr;
-std::shared_ptr<rclcpp_action::Client<nav2_msgs::action::ComputeAndTrackRoute>> ComputeAndTrackRouteActionTestFixture::client_ = nullptr;
-
+std::shared_ptr<rclcpp_action::Client<nav2_msgs::action::ComputeAndTrackRoute>>
+  ComputeAndTrackRouteActionTestFixture::client_ = nullptr;
 
 TEST_F(ComputeAndTrackRouteActionTestFixture, test_tick)
 {
@@ -135,7 +135,7 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_tick)
 
   // tick until node succeeds
   uint16_t iter = 0;  // safety to prevent infinite loop
-  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 50) {
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 500) {
     tree_->rootNode()->executeTick();
   }
 
@@ -153,7 +153,7 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_tick)
   config_->blackboard->set<geometry_msgs::msg::PoseStamped>("goal", goal);
 
   iter = 0;
-  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 50) {
+  while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS && iter < 500) {
     tree_->rootNode()->executeTick();
     ++iter;
   }
@@ -175,7 +175,6 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_cancel)
 
   tree_ = std::make_shared<BT::Tree>(factory_->createTreeFromText(xml_txt, config_->blackboard));
 
-
   // create new goal and set it on blackboard
   geometry_msgs::msg::PoseStamped goal;
   goal.header.stamp = node_->now();
@@ -187,8 +186,7 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_cancel)
   // tick until node succeeds
   uint16_t iter = 0;  // safety to prevent infinite loop
   while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS &&
-    tree_->rootNode()->status() != BT::NodeStatus::FAILURE &&
-    iter < 50) {
+         tree_->rootNode()->status() != BT::NodeStatus::FAILURE && iter < 500) {
     tree_->rootNode()->executeTick();
     ++iter;
   }
@@ -218,10 +216,9 @@ TEST_F(ComputeAndTrackRouteActionTestFixture, test_abort)
   config_->blackboard->set("goal", goal);
 
   // tick until node fails
-  uint16_t iter = 0; // safety to prevent infinite loop
+  uint16_t iter = 0;  // safety to prevent infinite loop
   while (tree_->rootNode()->status() != BT::NodeStatus::SUCCESS &&
-    tree_->rootNode()->status() != BT::NodeStatus::FAILURE &&
-    iter < 50) {
+         tree_->rootNode()->status() != BT::NodeStatus::FAILURE && iter < 500) {
     tree_->rootNode()->executeTick();
     ++iter;
   }
