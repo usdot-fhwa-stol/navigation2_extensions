@@ -161,42 +161,21 @@ void PortDrayageDemo::route_feedback_callback(rclcpp_action::ClientGoalHandle<na
 {
   RCLCPP_INFO(get_logger(), "Received feedback with path containing %zu poses", feedback->path.poses.size());
 
-  if (feedback->path.poses.size() > 0) {
+  if (feedback->path.poses.size() > 0 && !actively_executing_operation_) {
     actively_executing_operation_ = true;
-
+    
     auto follow_path_goal = nav2_msgs::action::FollowPath::Goal();
     follow_path_goal.path = feedback->path;
     follow_path_goal.controller_id = "";
 
-    auto follow_path_options = rclcpp_action::Client<nav2_msgs::action::FollowPath>::SendGoalOptions();
-    follow_path_options.result_callback = std::bind(&PortDrayageDemo::follow_path_result_callback, this, std::placeholders::_1);
+    // auto follow_path_options = rclcpp_action::Client<nav2_msgs::action::FollowPath>::SendGoalOptions();
+    // follow_path_options.result_callback = std::bind(&PortDrayageDemo::follow_path_result_callback, this, std::placeholders::_1);
     
-    follow_path_client_->async_send_goal(follow_path_goal, follow_path_options);
+    follow_path_client_->async_send_goal(follow_path_goal);
   }
 }
 
 void PortDrayageDemo::route_result_callback(const rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>::WrappedResult & result)
-{
-  if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-    RCLCPP_INFO(get_logger(), "Route computation succeeded");
-
-    auto follow_path_goal = nav2_msgs::action::FollowPath::Goal();
-    follow_path_goal.path = computed_path_;
-    follow_path_goal.controller_id = "";
-
-    auto follow_path_options = rclcpp_action::Client<nav2_msgs::action::FollowPath>::SendGoalOptions();
-    follow_path_options.result_callback = std::bind(&PortDrayageDemo::follow_path_result_callback, this, std::placeholders::_1);
-    
-    follow_path_client_->async_send_goal(follow_path_goal, follow_path_options);
-  } 
-  else {
-    RCLCPP_ERROR(get_logger(), "Route computation failed");
-  }
-}
-
-auto PortDrayageDemo::follow_path_result_callback(
-  const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowPath>::WrappedResult & result)
-  -> void
 {
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED: {
@@ -208,15 +187,43 @@ auto PortDrayageDemo::follow_path_result_callback(
     }
     case rclcpp_action::ResultCode::ABORTED:
       RCLCPP_ERROR(get_logger(), "Goal aborted");
+      actively_executing_operation_ = false;
       return;
     case rclcpp_action::ResultCode::CANCELED:
       RCLCPP_ERROR(get_logger(), "Goal canceled");
+      actively_executing_operation_ = false;
       return;
     default:
       RCLCPP_ERROR(get_logger(), "An unknown error occurred");
       return;
   }
 }
+
+// auto PortDrayageDemo::follow_path_result_callback(
+//   const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowPath>::WrappedResult & result)
+//   -> void
+// {
+//   switch (result.code) {
+//     case rclcpp_action::ResultCode::SUCCEEDED: {
+//       // Create arrival message
+//       carma_v2x_msgs::msg::MobilityOperation result = compose_arrival_message();
+//       mobility_operation_publisher_->publish(std::move(result));
+//       actively_executing_operation_ = false;
+//       return;
+//     }
+//     case rclcpp_action::ResultCode::ABORTED:
+//       RCLCPP_ERROR(get_logger(), "Goal aborted");
+//       actively_executing_operation_ = false;
+//       return;
+//     case rclcpp_action::ResultCode::CANCELED:
+//       RCLCPP_ERROR(get_logger(), "Goal canceled");
+//       actively_executing_operation_ = false;
+//       return;
+//     default:
+//       RCLCPP_ERROR(get_logger(), "An unknown error occurred");
+//       return;
+//   }
+// }
 
 auto PortDrayageDemo::on_odometry_received(
   const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void
