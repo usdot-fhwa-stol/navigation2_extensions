@@ -86,6 +86,9 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
 
   clock_ = get_clock();
 
+  service_ = this->create_service<std_srvs::srv::Trigger>(
+        "entrance_reached", std::bind(&PortDrayageDemo::handle_entrance_trigger, this, std::placeholders::_1, std::placeholders::_2));
+
   route_client_ = rclcpp_action::create_client<nav2_msgs::action::ComputeAndTrackRoute>(this, "compute_and_track_route");
   follow_path_client_ = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "follow_path");
 
@@ -175,6 +178,21 @@ void PortDrayageDemo::route_feedback_callback(rclcpp_action::ClientGoalHandle<na
   }
 }
 
+void PortDrayageDemo::handle_entrance_trigger(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                      std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+{
+  (void)request; // Unused
+  RCLCPP_INFO(get_logger(), "Trigger service called");
+
+  carma_v2x_msgs::msg::MobilityOperation ack = compose_arrival_message();
+  mobility_operation_publisher_->publish(std::move(ack));
+  actively_executing_operation_ = false;
+
+  response->success = true;
+  response->message = "Trigger action was successful";
+  return;
+}
+
 void PortDrayageDemo::route_result_callback(const rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputeAndTrackRoute>::WrappedResult & result)
 {
   switch (result.code) {
@@ -198,32 +216,6 @@ void PortDrayageDemo::route_result_callback(const rclcpp_action::ClientGoalHandl
       return;
   }
 }
-
-// auto PortDrayageDemo::follow_path_result_callback(
-//   const rclcpp_action::ClientGoalHandle<nav2_msgs::action::FollowPath>::WrappedResult & result)
-//   -> void
-// {
-//   switch (result.code) {
-//     case rclcpp_action::ResultCode::SUCCEEDED: {
-//       // Create arrival message
-//       carma_v2x_msgs::msg::MobilityOperation result = compose_arrival_message();
-//       mobility_operation_publisher_->publish(std::move(result));
-//       actively_executing_operation_ = false;
-//       return;
-//     }
-//     case rclcpp_action::ResultCode::ABORTED:
-//       RCLCPP_ERROR(get_logger(), "Goal aborted");
-//       actively_executing_operation_ = false;
-//       return;
-//     case rclcpp_action::ResultCode::CANCELED:
-//       RCLCPP_ERROR(get_logger(), "Goal canceled");
-//       actively_executing_operation_ = false;
-//       return;
-//     default:
-//       RCLCPP_ERROR(get_logger(), "An unknown error occurred");
-//       return;
-//   }
-// }
 
 auto PortDrayageDemo::on_odometry_received(
   const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void
