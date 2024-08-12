@@ -221,9 +221,9 @@ auto PortDrayageDemo::extract_port_drayage_message(
     }
 
     previous_mobility_operation_msg_.dest_longitude =
-      strategy_params_json["destination"]["longitude"].template get<double>();
+      std::stod(strategy_params_json["destination"]["longitude"].template get<std::string>());
     previous_mobility_operation_msg_.dest_latitude =
-      strategy_params_json["destination"]["latitude"].template get<double>();
+      std::stod(strategy_params_json["destination"]["latitude"].template get<std::string>());
     previous_mobility_operation_msg_.operation = std::shared_ptr<OperationID>(
       new OperationID(strategy_params_json["operation"].template get<std::string>()));
     previous_mobility_operation_msg_.cargo_id =
