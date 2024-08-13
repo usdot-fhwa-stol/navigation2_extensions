@@ -100,6 +100,11 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
       on_odometry_received(msg);
     });
 
+  rviz_action_subscription_ = create_subscription<action_msgs::msg::GoalStatusArray>(
+    "/navigate_to_pose/_action/status", 1, [this](const action_msgs::msg::GoalStatusArray & msg) {
+      on_rviz_goal_status_received(msg);
+    });
+
   mobility_operation_publisher_ =
     create_publisher<carma_v2x_msgs::msg::MobilityOperation>("outgoing_mobility_operation", 1);
 
@@ -175,6 +180,26 @@ auto PortDrayageDemo::on_odometry_received(
   const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void
 {
   current_odometry_ = msg;
+}
+
+auto PortDrayageDemo::on_rviz_goal_status_received(
+  const action_msgs::msg::GoalStatusArray & msg) -> void
+{
+  const auto & goal = msg.status_list[msg.status_list.size() - 1];
+  if (!actively_executing_operation_) {
+    if (goal.status == action_msgs::msg::GoalStatus::STATUS_ACCEPTED || goal.status == action_msgs::msg::GoalStatus::STATUS_EXECUTING) {
+      previous_mobility_operation_msg_.operation = std::shared_ptr<OperationID>(new OperationID(OperationID::Operation::ENTER_STAGING_AREA));
+      previous_mobility_operation_msg_.current_action_id = "one";
+      actively_executing_operation_ = true;
+    }
+  } else {
+    if (goal.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
+      // Create arrival message
+      carma_v2x_msgs::msg::MobilityOperation result = compose_arrival_message();
+      mobility_operation_publisher_->publish(std::move(result));
+      actively_executing_operation_ = false;
+    }
+  }
 }
 
 auto PortDrayageDemo::extract_port_drayage_message(
