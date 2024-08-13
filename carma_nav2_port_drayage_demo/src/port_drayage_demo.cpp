@@ -189,7 +189,6 @@ auto PortDrayageDemo::on_rviz_goal_status_received(
   if (!actively_executing_operation_) {
     if (goal.status == action_msgs::msg::GoalStatus::STATUS_ACCEPTED || goal.status == action_msgs::msg::GoalStatus::STATUS_EXECUTING) {
       previous_mobility_operation_msg_.operation = std::shared_ptr<OperationID>(new OperationID(OperationID::Operation::ENTER_STAGING_AREA));
-      previous_mobility_operation_msg_.current_action_id = "one";
       actively_executing_operation_ = true;
     }
   } else {
