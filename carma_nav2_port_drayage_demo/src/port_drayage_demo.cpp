@@ -197,6 +197,7 @@ auto PortDrayageDemo::on_rviz_goal_status_received(
       carma_v2x_msgs::msg::MobilityOperation result = compose_arrival_message();
       mobility_operation_publisher_->publish(std::move(result));
       actively_executing_operation_ = false;
+      rviz_action_subscription_.reset(); 
     }
   }
 }
