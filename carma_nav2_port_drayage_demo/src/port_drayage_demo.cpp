@@ -100,6 +100,11 @@ auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
       on_odometry_received(msg);
     });
 
+  rviz_action_subscription_ = create_subscription<action_msgs::msg::GoalStatusArray>(
+    "/navigate_to_pose/_action/status", 1, [this](const action_msgs::msg::GoalStatusArray & msg) {
+      on_rviz_goal_status_received(msg);
+    });
+
   mobility_operation_publisher_ =
     create_publisher<carma_v2x_msgs::msg::MobilityOperation>("outgoing_mobility_operation", 1);
 
@@ -177,6 +182,26 @@ auto PortDrayageDemo::on_odometry_received(
   current_odometry_ = msg;
 }
 
+auto PortDrayageDemo::on_rviz_goal_status_received(
+  const action_msgs::msg::GoalStatusArray & msg) -> void
+{
+  const auto & goal = msg.status_list[msg.status_list.size() - 1];
+  if (!actively_executing_operation_) {
+    if (goal.status == action_msgs::msg::GoalStatus::STATUS_ACCEPTED || goal.status == action_msgs::msg::GoalStatus::STATUS_EXECUTING) {
+      previous_mobility_operation_msg_.operation = std::shared_ptr<OperationID>(new OperationID(OperationID::Operation::ENTER_STAGING_AREA));
+      actively_executing_operation_ = true;
+    }
+  } else {
+    if (goal.status == action_msgs::msg::GoalStatus::STATUS_SUCCEEDED) {
+      // Create arrival message
+      carma_v2x_msgs::msg::MobilityOperation result = compose_arrival_message();
+      mobility_operation_publisher_->publish(std::move(result));
+      actively_executing_operation_ = false;
+      rviz_action_subscription_.reset(); 
+    }
+  }
+}
+
 auto PortDrayageDemo::extract_port_drayage_message(
   const carma_v2x_msgs::msg::MobilityOperation & msg) -> bool
 {
@@ -197,9 +222,9 @@ auto PortDrayageDemo::extract_port_drayage_message(
     }
 
     previous_mobility_operation_msg_.dest_longitude =
-      strategy_params_json["destination"]["longitude"].template get<double>();
+      std::stod(strategy_params_json["destination"]["longitude"].template get<std::string>());
     previous_mobility_operation_msg_.dest_latitude =
-      strategy_params_json["destination"]["latitude"].template get<double>();
+      std::stod(strategy_params_json["destination"]["latitude"].template get<std::string>());
     previous_mobility_operation_msg_.operation = std::shared_ptr<OperationID>(
       new OperationID(strategy_params_json["operation"].template get<std::string>()));
     previous_mobility_operation_msg_.cargo_id =

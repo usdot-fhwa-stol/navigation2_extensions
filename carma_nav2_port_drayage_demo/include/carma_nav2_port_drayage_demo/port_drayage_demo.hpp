@@ -17,6 +17,9 @@
 
 #include <carma_v2x_msgs/msg/mobility_operation.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <action_msgs/msg/goal_status_array.hpp>
+#include <action_msgs/msg/goal_status.hpp>
+#include <unique_identifier_msgs/msg/uuid.hpp>
 #include <memory>
 #include <nav2_msgs/action/follow_waypoints.hpp>
 #include <nav2_util/lifecycle_node.hpp>
@@ -151,6 +154,12 @@ public:
   auto on_odometry_received(const geometry_msgs::msg::PoseWithCovarianceStamped & msg) -> void;
 
   /**
+   * \brief Callback that contains status information on Nav2 goals sent from Rviz
+   * \param msg Goal status
+   */
+  auto on_rviz_goal_status_received(const action_msgs::msg::GoalStatusArray & msg) -> void;
+
+  /**
    * \brief Helper function to compose the ack published in on_result_received
    */
   auto compose_arrival_message() -> carma_v2x_msgs::msg::MobilityOperation;
@@ -190,6 +199,9 @@ private:
 
   rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
     odometry_subscription_{nullptr};
+
+  rclcpp::Subscription<action_msgs::msg::GoalStatusArray>::SharedPtr
+    rviz_action_subscription_{nullptr};
 
   rclcpp::Publisher<carma_v2x_msgs::msg::MobilityOperation>::SharedPtr
     mobility_operation_publisher_{nullptr};
