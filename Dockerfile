@@ -20,7 +20,7 @@ ARG GIT_BRANCH="develop"
 RUN mkdir /root/c1t_ws/
 RUN mkdir /root/c1t_ws/src/
 RUN mkdir /root/c1t_ws/src/navigation2_extensions
-COPY . /root/c1t_ws/src//navigation2_extensions/
+COPY . /root/c1t_ws/src/navigation2_extensions/
 
 WORKDIR /root/c1t_ws/src/
 RUN git clone https://github.com/usdot-fhwa-stol/carma-msgs
