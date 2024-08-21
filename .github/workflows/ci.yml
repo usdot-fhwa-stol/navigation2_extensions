@@ -1,0 +1,54 @@
+name: Navigation2_extensions_CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: 
+      - develop
+      - master
+      - "release/*"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container: 
+      image: ros:humble-ros-base
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: src/${{ github.event.repository.name }}
+        
+    - name: Clone Dep's
+      run: |
+        git clone https://github.com/usdot-fhwa-stol/carma-msgs
+        git clone -b nav2_route_server_humble https://github.com/usdot-fhwa-stol/navigation2
+      working-directory: /__w/navigation2_extensions/navigation2_extensions/src
+         
+    - name: Install Ros dependencies
+      run: |
+        chmod +x ./install_dependencies.sh
+        ./install_dependencies.sh
+      working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions
+          
+    - name: Build 
+      run: |
+        chmod +x ./build.sh
+        ./build.sh
+      working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions 
+
+    - name: Run tests
+      run: |
+        source /opt/ros/humble/setup.bash
+        colcon test --packages-select carma_nav2_behavior_tree carma_nav2_emergency_stop carma_nav2_port_drayage_demo
+        colcon test-result --verbose
+      working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions 
+
+    - name: Run SonarScanner
+      uses: usdot-fhwa-stol/actions/sonar-scanner@main
+      with:
+        sonar-token: ${{ secrets.SONAR_TOKEN }}
+        working-dir: /github/workspace/ros_ws/src/navigation2_extensions  
