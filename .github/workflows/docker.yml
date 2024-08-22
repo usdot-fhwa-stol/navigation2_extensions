@@ -4,7 +4,7 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches:
-      - develop
+      - cf-890_ci_navigation2_ectension
 jobs:
   docker:
     uses: usdot-fhwa-stol/actions/.github/workflows/docker.yml@main
