@@ -25,6 +25,7 @@ WORKDIR /root/c1t_ws/
 COPY docker/install_dependencies.sh /root/c1t_ws/
 COPY docker/build.sh /root/c1t_ws/
 RUN /root/c1t_ws/install_dependencies.sh
+COPY . /root/c1t_ws/src/navigation2_extensions/
 RUN /root/c1t_ws/build.sh
 
 LABEL org.label-schema.schema-version="1.0"
