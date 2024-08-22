@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e 
-
 sudo apt-get update
 # Install 
 apt install -y libnanoflann-dev

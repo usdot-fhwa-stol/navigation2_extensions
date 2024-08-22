@@ -21,7 +21,7 @@ jobs:
       with:
         fetch-depth: 0
         path: src/${{ github.event.repository.name }}
-        
+
     - name: Clone Dep's
       run: |
         git clone https://github.com/usdot-fhwa-stol/carma-msgs
@@ -36,16 +36,16 @@ jobs:
           
     - name: Build 
       run: |
-        chmod +x ./build.sh
-        ./build.sh
-      working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions 
+        . /opt/ros/humble/setup.sh
+        colcon build --parallel-workers 4 --event-handlers console_direct+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug"
+      working-directory: /__w/navigation2_extensions/navigation2_extensions/
 
     - name: Run tests
       run: |
-        source /opt/ros/humble/setup.bash
-        colcon test --packages-select carma_nav2_behavior_tree carma_nav2_emergency_stop carma_nav2_port_drayage_demo
+        . /opt/ros/humble/setup.sh
+        colcon test --parallel-workers 4 --event-handlers console_direct+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug"
         colcon test-result --verbose
-      working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions 
+      working-directory: /__w/navigation2_extensions/navigation2_extensions/
 
     - name: Run SonarScanner
       uses: usdot-fhwa-stol/actions/sonar-scanner@main
