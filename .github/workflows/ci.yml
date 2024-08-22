@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest-32-cores
+    runs-on: ubuntu-latest-16-cores
     container: 
       image: ros:humble-ros-base
 
