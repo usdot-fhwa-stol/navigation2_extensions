@@ -41,7 +41,10 @@ jobs:
         . /opt/ros/humble/setup.sh
         colcon build --parallel-workers 4 --event-handlers console_direct+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug"
       working-directory: /__w/navigation2_extensions/navigation2_extensions/
-
+    - name: Find setup.bash
+      shell: bash
+      run: |
+        find "/__w/navigation2_extensions/navigation2_extensions/" -name "setup.bash"
     - name: Run tests
       run: |
         colcon test --parallel-workers 4 --event-handlers console_direct+ --ctest-args -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug" --packages-select carma_nav2_port_drayage_demo
@@ -66,9 +69,15 @@ jobs:
         sonar.scm.provider=git
         sonar.modules=carma_nav2_behavior_tree
         carma_nav2_behavior_tree.sonar.projectBaseDir=/__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/carma_nav2_behavior_tree
-        carma_nav2_behavior_tree.sonar.sources=src
         carma_nav2_behavior_tree.sonar.exclusions =test/**
         carma_nav2_behavior_tree.sonar.tests=test
+        carma_nav2_emergency_stop.sonar.projectBaseDir=/__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/carma_nav2_emergency_stop
+        carma_nav2_emergency_stop.sonar.sources=src
+        carma_nav2_emergency_stop.sonar.exclusions =test/**
+        carma_nav2_port_drayage_demo.sonar.projectBaseDir=/__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/carma_nav2_port_drayage_demo
+        carma_nav2_port_drayage_demo.sonar.sources=src
+        carma_nav2_port_drayage_demo.sonar.exclusions =test/**
+        carma_nav2_port_drayage_demo.sonar.tests=test
         EOF
 
     - name: Run SonarScanner
