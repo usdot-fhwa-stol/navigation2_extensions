@@ -44,6 +44,7 @@ jobs:
 
     - name: Run tests
       run: |
+        source /root/c1t_ws/install/setup.bash
         colcon test --parallel-workers 4 --event-handlers console_direct+ --ctest-args -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug" --packages-select carma_nav2_port_drayage_demo
       working-directory: /__w/navigation2_extensions/navigation2_extensions/
 
@@ -52,13 +53,15 @@ jobs:
     - name: Generate sonar properties file
       run: |
         cat <<EOF > /tmp/sonar-scanner.properties
-        sonar.projectKey=usdot-fhwa-stol_navigation2_extensions
+        sonar.projectKey=usdot-fhwa-stol_navigation2-extensions
         sonar.organization=usdot-fhwa-stol
+        sonar.projectName=navigation2_extensions
+        sonar.projectVersion=1.0
+        sonar.sourceEncoding=UTF-8
         sonar.cfamily.cache.enabled=false
         sonar.host.url=https://sonarcloud.io
         sonar.cpp.file.suffixes=.cpp,.h,.tpp
         sonar.c.file.suffixes=-
-        sonar.tests=test
         sonar.scm.disabled=false
         sonar.scm.enabled=true
         sonar.scm.provider=git
