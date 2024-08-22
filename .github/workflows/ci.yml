@@ -31,7 +31,7 @@ jobs:
     - name: Install Ros dependencies
       run: |
         sudo apt-get update
-        apt install -y libnanoflann-dev
+        apt install -y libnanoflann-dev unzip
         rosdep update
         rosdep install --from-paths /__w/navigation2_extensions/navigation2_extensions/src --ignore-src --rosdistro=humble -y -r
       working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions
