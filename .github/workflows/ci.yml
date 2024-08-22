@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches: 
-      - develop
+      - cf-890_ci_navigation2_ectension
       - master
       - "release/*"
 
