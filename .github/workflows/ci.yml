@@ -67,7 +67,9 @@ jobs:
         sonar.scm.disabled=false
         sonar.scm.enabled=true
         sonar.scm.provider=git
-        sonar.modules=carma_nav2_behavior_tree
+        sonar.modules=carma_nav2_behavior_tree, \
+        carma_nav2_emergency_stop, \
+        carma_nav2_port_drayage_demo
         carma_nav2_behavior_tree.sonar.projectBaseDir=/__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/carma_nav2_behavior_tree
         carma_nav2_behavior_tree.sonar.exclusions =test/**
         carma_nav2_behavior_tree.sonar.tests=test
@@ -85,4 +87,4 @@ jobs:
       with:
         sonar-properties-path: /tmp/sonar-scanner.properties
         sonar-token: ${{ secrets.SONAR_TOKEN }}
-        working-dir: $GITHUB_WORKSPACE
+        working-dir: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/
