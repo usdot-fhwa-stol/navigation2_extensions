@@ -44,11 +44,34 @@ jobs:
 
     - name: Run tests
       run: |
-        colcon test --parallel-workers 4 --event-handlers console_direct+ --ctest-args -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug" --packages-select carma_nav2_port_drayage_demo carma-nav2_behavior_tree
+        colcon test --parallel-workers 4 --event-handlers console_direct+ --ctest-args -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug" --packages-select carma_nav2_port_drayage_demo
       working-directory: /__w/navigation2_extensions/navigation2_extensions/
+
+    - name: Setup SonarScanner
+      uses: warchant/setup-sonar-scanner@v7
+    - name: Generate sonar properties file
+      run: |
+        cat <<EOF > /tmp/sonar-scanner.properties
+        sonar.projectKey=usdot-fhwa-stol_navigation2_extensions
+        sonar.organization=usdot-fhwa-stol
+        sonar.cfamily.cache.enabled=false
+        sonar.host.url=https://sonarcloud.io
+        sonar.cpp.file.suffixes=.cpp,.h,.tpp
+        sonar.c.file.suffixes=-
+        sonar.tests=test
+        sonar.scm.disabled=false
+        sonar.scm.enabled=true
+        sonar.scm.provider=git
+        sonar.modules=carma_nav2_behavior_tree
+        carma_nav2_behavior_tree.sonar.projectBaseDir=/__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/carma_nav2_behavior_tree
+        carma_nav2_behavior_tree.sonar.sources=src
+        carma_nav2_behavior_tree.sonar.exclusions =test/**
+        carma_nav2_behavior_tree.sonar.tests=test
+        EOF
 
     - name: Run SonarScanner
       uses: usdot-fhwa-stol/actions/sonar-scanner@main
       with:
+        sonar-properties-path: /tmp/sonar-scanner.properties
         sonar-token: ${{ secrets.SONAR_TOKEN }}
-        working-dir: /github/workspace/ros_ws/src/navigation2_extensions  
+        working-dir: $GITHUB_WORKSPACE
