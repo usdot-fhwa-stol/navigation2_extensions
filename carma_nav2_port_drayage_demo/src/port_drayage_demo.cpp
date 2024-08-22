@@ -137,6 +137,7 @@ auto PortDrayageDemo::on_mobility_operation_received(
     return;
   }
   if (!extract_port_drayage_message(msg)) return;
+  rclcpp::sleep_for(std::chrono::seconds(2));
   nav2_msgs::action::FollowWaypoints::Goal goal;
 
   geometry_msgs::msg::PoseStamped pose;
