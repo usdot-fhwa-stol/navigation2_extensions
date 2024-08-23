@@ -24,12 +24,6 @@ ENV ROS_DISTRO=humble
 
 RUN mkdir -p /root/c1t_ws/src/navigation2_extensions
 
-# Set the working directory
-WORKDIR /root/c1t_ws/src/
-
-RUN git clone https://github.com/usdot-fhwa-stol/carma-msgs && \
-    git clone -b nav2_route_server_humble https://github.com/usdot-fhwa-stol/navigation2
-
 COPY . /root/c1t_ws/src/navigation2_extensions/
 COPY docker/install_dependencies.sh /root/c1t_ws/
 COPY docker/build.sh /root/c1t_ws/
