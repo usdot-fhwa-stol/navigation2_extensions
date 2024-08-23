@@ -6,7 +6,7 @@ on:
   push:
     branches: 
       - cf-890_ci_navigation2_ectension
-      - master
+      - develop
       - "release/*"
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
     - name: Install Ros dependencies
       run: |
         sudo apt-get update
-        apt install -y libnanoflann-dev unzip build-essential
+        apt install -y libnanoflann-dev unzip build-essential wget
         rosdep update
         rosdep install --from-paths /__w/navigation2_extensions/navigation2_extensions/src --ignore-src --rosdistro=humble -y -r
       working-directory: /__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions
@@ -52,6 +52,7 @@ jobs:
       shell: bash
       run: |
         find "/__w/navigation2_extensions/navigation2_extensions/" -name "build-wrapper-dump.json"
+        find "/__w/navigation2_extensions/navigation2_extensions/" -name "setup.bash"
     - name: Run tests
       run: |
         colcon test --parallel-workers 4 --event-handlers console_direct+ --ctest-args -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug" --packages-select carma_nav2_port_drayage_demo
@@ -68,17 +69,12 @@ jobs:
         sonar.projectName=navigation2_extensions
         sonar.projectVersion=1.0
         sonar.sourceEncoding=UTF-8
-        sonar.cfamily.compile-commands=/__w/navigation2_extensions/navigation2_extensions/bw-output/build-wrapper-dump.json
+        sonar.cfamily.build-wrapper-output=bw-output
         sonar.cfamily.cache.enabled=false
         sonar.host.url=https://sonarcloud.io
         sonar.cpp.file.suffixes=.cpp,.h,.tpp
         sonar.c.file.suffixes=-
-        sonar.scm.disabled=false
-        sonar.scm.enabled=true
-        sonar.scm.provider=git
-        sonar.modules=carma_nav2_behavior_tree, \
-        carma_nav2_emergency_stop, \
-        carma_nav2_port_drayage_demo
+          sonar.scm.provider=git
         carma_nav2_behavior_tree.sonar.projectBaseDir=/__w/navigation2_extensions/navigation2_extensions/src/navigation2_extensions/carma_nav2_behavior_tree
         carma_nav2_behavior_tree.sonar.exclusions=test/**
         carma_nav2_behavior_tree.sonar.tests=test
