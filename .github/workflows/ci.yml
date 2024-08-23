@@ -5,13 +5,13 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches: 
-      - cf-890_ci_navigation2_ectension
       - develop
+      - master
       - "release/*"
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest-16-cores
+    runs-on: ubuntu-latest
     container: 
       image: ros:humble-ros-base
 
@@ -48,11 +48,7 @@ jobs:
         ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output \
           colcon build --parallel-workers 4 --event-handlers console_direct+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_CXX_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_C_FLAGS="${COVERAGE_FLAGS}" -DCMAKE_BUILD_TYPE="Debug"
       working-directory: /__w/navigation2_extensions/navigation2_extensions/
-    - name: Find build-wrapper-dump.json
-      shell: bash
-      run: |
-        find "/__w/navigation2_extensions/navigation2_extensions/" -name "build-wrapper-dump.json"
-        find "/__w/navigation2_extensions/navigation2_extensions/" -name "setup.bash"
+
     - name: Run tests
       shell: bash
       run: |

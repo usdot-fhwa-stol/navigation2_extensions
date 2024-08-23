@@ -31,8 +31,8 @@ RUN git clone https://github.com/usdot-fhwa-stol/carma-msgs && \
     git clone -b nav2_route_server_humble https://github.com/usdot-fhwa-stol/navigation2
 
 COPY . /root/c1t_ws/src/navigation2_extensions/
-COPY install_dependencies.sh /root/c1t_ws/
-COPY build.sh /root/c1t_ws/
+COPY docker/install_dependencies.sh /root/c1t_ws/
+COPY docker/build.sh /root/c1t_ws/
 
 WORKDIR /root/c1t_ws/
 
