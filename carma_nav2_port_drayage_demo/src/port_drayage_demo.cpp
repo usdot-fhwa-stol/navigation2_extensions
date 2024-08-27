@@ -77,12 +77,14 @@ PortDrayageDemo::PortDrayageDemo(const rclcpp::NodeOptions & options)
 : rclcpp_lifecycle::LifecycleNode("port_drayage_demo", options)
 {
   declare_parameter("cmv_id", rclcpp::ParameterValue(std::string("")));
+  declare_parameter("message_processing_delay", 0);
 }
 
 auto PortDrayageDemo::on_configure(const rclcpp_lifecycle::State & /* state */)
   -> nav2_util::CallbackReturn
 {
   get_parameter("cmv_id", cmv_id_);
+  get_parameter("message_processing_delay", message_processing_delay_);
 
   clock_ = get_clock();
 
@@ -137,7 +139,7 @@ auto PortDrayageDemo::on_mobility_operation_received(
     return;
   }
   if (!extract_port_drayage_message(msg)) return;
-  rclcpp::sleep_for(std::chrono::seconds(2));
+  rclcpp::sleep_for(std::chrono::seconds(message_processing_delay_));
   nav2_msgs::action::FollowWaypoints::Goal goal;
 
   geometry_msgs::msg::PoseStamped pose;
