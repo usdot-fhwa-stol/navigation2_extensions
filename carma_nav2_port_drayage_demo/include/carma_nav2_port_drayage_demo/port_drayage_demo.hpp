@@ -216,6 +216,8 @@ private:
   geometry_msgs::msg::PoseWithCovarianceStamped current_odometry_;
   // Vehicle identifier
   std::string cmv_id_;
+  // Delay between receiving and processing goal message
+  int message_processing_delay_;
   // Cargo identified
   std::string cargo_id_;
   // Flag for whether vehicle is busy
